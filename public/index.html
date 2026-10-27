@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStore | Premium E-Ticarət Platforması</title>
+    <meta name="description"
+        content="Node.js, Express və MongoDB üzərində qurulmuş tam funksional elektron ticarət mağazası.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="#" class="brand-logo">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">Tech<span>Store</span></div>
+            </a>
+
+            <div class="nav-actions">
+                <button id="myOrdersBtn" class="btn btn-ghost" style="display: none;">
+                    <span class="icon">📦</span>
+                    <span>Sifarişlərim</span>
+                </button>
+
+                <button id="adminPanelBtn" class="btn btn-warning" style="display: none;">
+                    <span class="icon">👑</span>
+                    <span>Admin Panel</span>
+                </button>
+
+                <button id="cartBtn" class="btn btn-cart">
+                    <span class="icon">🛒</span>
+                    <span class="btn-text">Səbət</span>
+                    <span id="cartCountBadge" class="badge">0</span>
+                </button>
+
+                <div id="userProfileArea">
+                    <button id="openAuthBtn" class="btn btn-primary">
+                        <span class="icon">👤</span>
+                        <span>Daxil ol</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <span class="hero-tag">🔥 2026 Texnologiya Trendləri</span>
+                <h1 class="hero-title">Ən Yeni Smartfonlar və Premium Texnologiya</h1>
+                <p class="hero-desc">Rəsmi zəmanət, sürətli çatdırılma və Node.js + MongoDB arxitekturası ilə təhlükəsiz
+                    alış-veriş təcrübəsi.</p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-num">100%</span>
+                        <span class="stat-label">Orijinal Məhsul</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num">24 Saat</span>
+                        <span class="stat-label">Çatdırılma</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num">JWT & Bcrypt</span>
+                        <span class="stat-label">Təhlükəsiz Sistem</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Catalog Header & Filters -->
+        <section class="catalog-section">
+            <div class="catalog-header">
+                <div>
+                    <h2 class="section-title">Vitrin Məhsulları</h2>
+                    <p class="section-subtitle">MongoDB bazasındakı canlı məhsul kataloqu</p>
+                </div>
+
+                <div class="catalog-controls">
+                    <button id="adminAddProductBtn" class="btn btn-outline" style="display: none;">
+                        <span>+ Yeni Məhsul Əlavə Et</span>
+                    </button>
+                    <div class="category-pills">
+                        <button class="pill active" data-category="all">Hamısı</button>
+                        <button class="pill" data-category="Smartfonlar">Smartfonlar</button>
+                        <button class="pill" data-category="Noutbuklar & PC">Noutbuklar</button>
+                        <button class="pill" data-category="Qulaqlıqlar & Audio">Qulaqlıqlar</button>
+                        <button class="pill" data-category="Smart Saatlar">Smart Saatlar</button>
+                        <button class="pill" data-category="Planşetlər">Planşetlər</button>
+                        <button class="pill" data-category="Aksesuarlar & Digər">Aksesuarlar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div id="productsGrid" class="products-grid">
+                <!-- Javascript dinamik olaraq kartları bura dolduracaq -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Məhsullar bazadan yüklənir...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== MODALLAR (<dialog> standartı ilə) ==================== -->
+
+    <!-- 1. Giriş / Qeydiyyat Modalı -->
+    <dialog id="authModal" class="modal-dialog">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="authModalTitle" class="modal-title">Hesaba Giriş</h3>
+                <button class="btn-close" onclick="document.getElementById('authModal').close()">✕</button>
+            </div>
+
+            <div class="auth-tabs">
+                <button id="loginTabBtn" class="tab-btn active" onclick="switchAuthTab('login')">Giriş</button>
+                <button id="registerTabBtn" class="tab-btn" onclick="switchAuthTab('register')">Qeydiyyat</button>
+            </div>
+
+            <form id="authForm" class="modal-body" onsubmit="handleAuthSubmit(event)">
+                <div id="nameFieldGroup" class="form-group" style="display: none;">
+                    <label for="authName">Adınız</label>
+                    <input type="text" id="authName" class="form-input" placeholder="Məs: Məhəmməd Əhmədzadə">
+                </div>
+
+                <div class="form-group">
+                    <label for="authEmail">E-mail ünvanı</label>
+                    <input type="email" id="authEmail" class="form-input" placeholder="ad@domain.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="authPassword">Şifrə</label>
+                    <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required>
+                </div>
+
+                <div id="authAlert" class="alert" style="display: none;"></div>
+
+                <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-block">
+                    <span>Daxil Ol</span>
+                </button>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- 2. Səbət Modalı -->
+    <dialog id="cartModal" class="modal-dialog">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Alış-veriş Səbəti 🛒</h3>
+                <button class="btn-close" onclick="document.getElementById('cartModal').close()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="cartItemsList" class="cart-items-list">
+                    <!-- Dinamik səbət elementləri -->
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Çatdırılma:</span>
+                        <span class="text-success">Pulsuz 🚀</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>Yekun Məbləğ:</span>
+                        <span id="cartTotalPrice" class="total-amount">0 AZN</span>
+                    </div>
+
+                    <button id="checkoutBtn" class="btn btn-primary btn-block btn-lg" onclick="handleCheckout()">
+                        <span>Sifarişi Təsdiqlə və Al</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- 3. İstifadəçinin Öz Sifarişləri Modalı -->
+    <dialog id="myOrdersModal" class="modal-dialog modal-wide">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Mənim Sifarişlərim 📦</h3>
+                <button class="btn-close" onclick="document.getElementById('myOrdersModal').close()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="myOrdersList" class="orders-list">
+                    <!-- Dinamik sifarişlər -->
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- 4. Admin Panel Modalı (Bütün Sifarişlər) -->
+    <dialog id="adminModal" class="modal-dialog modal-wide">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">👑 Admin İdarəetmə Paneli</h3>
+                <button class="btn-close" onclick="document.getElementById('adminModal').close()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <p class="admin-subtitle">Bütün müştərilərin verdiyi sifarişlərin statusunu buradan dəyişə bilərsiniz:
+                </p>
+                <div id="adminOrdersList" class="orders-list">
+                    <!-- Dinamik Admin sifarişləri -->
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- 5. Yeni Məhsul Əlavə Etmə Modalı (Admin) -->
+    <dialog id="addProductModal" class="modal-dialog">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Yeni Məhsul Əlavə Et (Admin)</h3>
+                <button class="btn-close" onclick="document.getElementById('addProductModal').close()">✕</button>
+            </div>
+
+            <form id="addProductForm" class="modal-body" onsubmit="handleAddProductSubmit(event)">
+                <div class="form-group">
+                    <label for="prodTitle">Məhsulun Adı</label>
+                    <input type="text" id="prodTitle" class="form-input" placeholder="Məs: iPhone 16 Pro Max" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodDesc">Təsviri</label>
+                    <textarea id="prodDesc" class="form-input" rows="2" placeholder="Xüsusiyyətlər..."
+                        required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="prodImage">Şəkil Linki (URL)</label>
+                    <input type="url" id="prodImage" class="form-input" placeholder="https://example.com/telefon.jpg">
+                    <small style="color:var(--text-dim); font-size:0.75rem; display:block; margin-top:0.3rem;">Şəkil linki daxil etsəniz məhsulun şəkli vitrində görünəcək (boş qoysanız avtomatik ikon olacaq).</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodPrice">Qiymət (AZN)</label>
+                        <input type="number" id="prodPrice" class="form-input" placeholder="2800" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodCategory">Kateqoriya / Növ</label>
+                        <select id="prodCategory" class="form-input">
+                            <option value="Smartfonlar">📱 Smartfonlar</option>
+                            <option value="Noutbuklar & PC">💻 Noutbuklar & PC</option>
+                            <option value="Qulaqlıqlar & Audio">🎧 Qulaqlıqlar & Audio</option>
+                            <option value="Smart Saatlar">⌚ Smart Saatlar</option>
+                            <option value="Planşetlər">📟 Planşetlər</option>
+                            <option value="Aksesuarlar & Digər">🔌 Aksesuarlar & Digər</option>
+                            <option value="Elektronika">⚡ Digər Elektronika</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <span>Məhsulu Bazaya Yadda Saxla</span>
+                </button>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- Toast Bildirişləri -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>© 2026 TechStore | E-Commerce API & Platforması — Hazırladı: <strong>Məhəmməd Əhmədzadə</strong></p>
+            <p class="tech-stack-badges">
+                <span>Node.js</span> • <span>Express.js</span> • <span>MongoDB Atlas</span> • <span>JWT</span> •
+                <span>REST API</span>
+            </p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
