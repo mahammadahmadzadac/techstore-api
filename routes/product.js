@@ -5,7 +5,8 @@ import {
     getProductById,
     updateProduct,
     deleteProduct,
-    seedProducts
+    seedProducts,
+    mehsulReyleri
 } from '../controllers/productController.js';
 import { gozetci, adminGozetci } from '../middleware/authMiddleware.js';
 
@@ -18,5 +19,6 @@ router.get('/:id', getProductById);
 router.post('/', gozetci, adminGozetci, createProduct);
 router.put('/:id', gozetci, adminGozetci, updateProduct);
 router.delete('/:id', gozetci, adminGozetci, deleteProduct);
+router.post('/:id/reviews', gozetci, mehsulReyleri);
 
 export default router;

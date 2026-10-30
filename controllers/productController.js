@@ -1,5 +1,10 @@
-import Product from '../models/Product.js';
+import {
+    Product,
+    reyting,
+    sherh
+} from '../models/Product.js';
 import { initialProducts } from '../seed.js';
+
 
 // 1. Yeni məhsul əlavə etmək funksiyasi (Admin üçün)
 export const createProduct = async (req, res) => {
@@ -94,3 +99,28 @@ export const deleteProduct = async (req, res) => {
         });
     }
 };
+
+export const mehsulReyleri = async (req, res) => {
+    try {
+        const mehsul = await Product.findById(req.params.id);
+        if (!mehsul) return res.status(404).json({
+            message: "Məhsul tapılmadı!"
+        })
+        const { reyting, sherh } = req.body;
+
+        mehsul.reyler.push({
+            ad: req.user.ad || "Müştəri", // Giriş edən istifadəçinin adı (biletindən gəlir)
+            reyting: Number(reyting), // Ulduz sayi
+            sherh: sherh // Müştərinin yazdığı sözler
+        })
+        await mehsul.save();
+        res.status(201).json({
+            message: "Rəyiniz uğurla əlavə edildi! ⭐"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Xəta baş verdi", xeta: error.message
+        });
+    }
+}
