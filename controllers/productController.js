@@ -1,10 +1,5 @@
-import {
-    Product,
-    reyting,
-    sherh
-} from '../models/Product.js';
+import Product from '../models/Product.js';
 import { initialProducts } from '../seed.js';
-
 
 // 1. Yeni məhsul əlavə etmək funksiyasi (Admin üçün)
 export const createProduct = async (req, res) => {
@@ -100,22 +95,25 @@ export const deleteProduct = async (req, res) => {
     }
 };
 
+// 7. Məhsula rəy və ulduz əlavə etmək (Məhəmmədin yazdığı funksiya)
 export const mehsulReyleri = async (req, res) => {
     try {
         const mehsul = await Product.findById(req.params.id);
         if (!mehsul) return res.status(404).json({
             message: "Məhsul tapılmadı!"
-        })
-        const { reyting, sherh } = req.body;
+        });
+        const { ad, reyting, sherh } = req.body;
 
         mehsul.reyler.push({
-            ad: req.user.ad || "Müştəri", // Giriş edən istifadəçinin adı (biletindən gəlir)
-            reyting: Number(reyting), // Ulduz sayi
-            sherh: sherh // Müştərinin yazdığı sözler
-        })
+            ad: ad || req.user.ad || "Müştəri", // Giriş edən istifadəçinin adı
+            reyting: Number(reyting) || 5,       // Ulduz sayı
+            sherh: sherh                         // Müştərinin yazdığı sözlər
+        });
+
         await mehsul.save();
         res.status(201).json({
-            message: "Rəyiniz uğurla əlavə edildi! ⭐"
+            message: "Rəyiniz uğurla əlavə edildi! ⭐",
+            mehsul
         });
 
     } catch (error) {
@@ -123,4 +121,4 @@ export const mehsulReyleri = async (req, res) => {
             message: "Xəta baş verdi", xeta: error.message
         });
     }
-}
+};

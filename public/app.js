@@ -13,7 +13,10 @@ let state = {
     searchQuery: '',
     selectedCategory: 'all',
     selectedSort: 'default',
-    theme: localStorage.getItem('theme') || 'dark'
+    theme: localStorage.getItem('theme') || 'dark',
+    activeProductId: null,
+    detailQty: 1,
+    reviewRating: 5
 };
 
 // ==================== INITIALIZATION ====================
@@ -99,6 +102,9 @@ function setupEventListeners() {
             if (clearSearchBtn) {
                 clearSearchBtn.style.display = state.searchQuery ? 'block' : 'none';
             }
+            if (state.activeProductId) {
+                closeProductDetail();
+            }
             applyFiltersAndRender();
         });
     }
@@ -118,6 +124,9 @@ function setupEventListeners() {
             document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             state.selectedCategory = tab.getAttribute('data-category');
+            if (state.activeProductId) {
+                closeProductDetail();
+            }
             applyFiltersAndRender();
         });
     });
@@ -178,6 +187,32 @@ async function fetchProducts() {
     }
 }
 
+function getProductIcon(product) {
+    let icon = '⚡';
+    const t = (product.basliq || '').toLowerCase();
+    const c = (product.kategoriya || '').toLowerCase();
+    if (c.includes('smartfon') || t.includes('iphone') || t.includes('samsung')) icon = '📱';
+    else if (c.includes('noutbuk') || t.includes('macbook') || t.includes('laptop')) icon = '💻';
+    else if (c.includes('audio') || c.includes('qulaqlıq') || t.includes('sony') || t.includes('airpods')) icon = '🎧';
+    else if (c.includes('saat') || t.includes('watch')) icon = '⌚';
+    else if (c.includes('planşet') || t.includes('ipad')) icon = '📟';
+    else if (c.includes('oyun') || t.includes('playstation') || t.includes('ps5')) icon = '🎮';
+    return icon;
+}
+
+function getProductRatingInfo(product) {
+    const reviews = Array.isArray(product.reyler) ? product.reyler : [];
+    if (reviews.length > 0) {
+        const sum = reviews.reduce((acc, r) => acc + (Number(r.reyting) || 5), 0);
+        const avg = sum / reviews.length;
+        return { rating: avg, count: reviews.length };
+    }
+    return {
+        rating: Number(product.reyting) || 5,
+        count: Number(product.reySayi) || 0
+    };
+}
+
 function applyFiltersAndRender() {
     let items = [...state.products];
 
@@ -206,7 +241,7 @@ function applyFiltersAndRender() {
     } else if (state.selectedSort === 'price-desc') {
         items.sort((a, b) => Number(b.qiymet) - Number(a.qiymet));
     } else if (state.selectedSort === 'rating') {
-        items.sort((a, b) => (Number(b.reyting) || 5) - (Number(a.reyting) || 5));
+        items.sort((a, b) => getProductRatingInfo(b).rating - getProductRatingInfo(a).rating);
     } else if (state.selectedSort === 'sales') {
         items.sort((a, b) => (Number(b.satisSayi) || 0) - (Number(a.satisSayi) || 0));
     }
@@ -214,7 +249,7 @@ function applyFiltersAndRender() {
     // Update Counter & Filter Status
     const countText = document.getElementById('productsCountText');
     if (countText) {
-        countText.textContent = `${items.length} premium məhsul nümayiş olunur`;
+        countText.textContent = `${items.length} premium məhsul nümayiş olunur (Məhsulun üzərinə klikləyərək rəylərə baxa bilərsiniz)`;
     }
 
     const filterStatusArea = document.getElementById('filterStatusArea');
@@ -253,29 +288,18 @@ function renderProductsGrid(items) {
     grid.innerHTML = items.map(product => {
         const cat = (product.kategoriya || 'Elektronika');
         const isWishlisted = state.wishlist.includes(product._id);
-        const rating = Number(product.reyting) || 5;
-        const reviewCount = Number(product.reySayi) || 48;
+        const { rating, count } = getProductRatingInfo(product);
         const price = Number(product.qiymet) || 0;
         const oldPrice = Math.round(price * 1.12);
-
-        // Fallback icon based on category/title
-        let icon = '⚡';
-        const t = (product.basliq || '').toLowerCase();
-        const c = cat.toLowerCase();
-        if (c.includes('smartfon') || t.includes('iphone') || t.includes('samsung')) icon = '📱';
-        else if (c.includes('noutbuk') || t.includes('macbook') || t.includes('laptop')) icon = '💻';
-        else if (c.includes('audio') || c.includes('qulaqlıq') || t.includes('sony') || t.includes('airpods')) icon = '🎧';
-        else if (c.includes('saat') || t.includes('watch')) icon = '⌚';
-        else if (c.includes('planşet') || t.includes('ipad')) icon = '📟';
-        else if (c.includes('oyun') || t.includes('playstation') || t.includes('ps5')) icon = '🎮';
+        const icon = getProductIcon(product);
 
         const mediaHtml = product.sekilUrl ? `
-            <div class="card-media">
+            <div class="card-media card-clickable" onclick="openProductDetail('${product._id}')">
                 <img src="${escapeHtml(product.sekilUrl)}" alt="${escapeHtml(product.basliq)}" class="product-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="product-fallback-icon" style="display:none;">${icon}</div>
             </div>
         ` : `
-            <div class="card-media">
+            <div class="card-media card-clickable" onclick="openProductDetail('${product._id}')">
                 <div class="product-fallback-icon">${icon}</div>
             </div>
         `;
@@ -284,7 +308,7 @@ function renderProductsGrid(items) {
             <article class="product-card" id="product-${product._id}">
                 <div class="card-header">
                     <span class="card-badge badge-trend">🔥 Orijinal</span>
-                    <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
+                    <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
                         ${isWishlisted ? '❤️' : '🤍'}
                     </button>
                 </div>
@@ -294,20 +318,23 @@ function renderProductsGrid(items) {
                 <div class="card-content">
                     <div class="meta-row">
                         <span class="cat-label">${escapeHtml(cat)}</span>
-                        <div class="rating-stars" title="${rating} ulduz">
+                        <div class="rating-stars card-clickable" onclick="openProductDetail('${product._id}')" title="Rəylərə bax">
                             <span>⭐</span>
-                            <span>${rating.toFixed(1)} (${reviewCount})</span>
+                            <span>${rating.toFixed(1)}</span>
+                            <span class="reviews-count-pill">(${count} rəy)</span>
                         </div>
                     </div>
 
-                    <h3 class="product-title" title="${escapeHtml(product.basliq)}">
-                        ${escapeHtml(product.basliq)}
-                    </h3>
-                    <p class="product-desc">${escapeHtml(product.tesvir || '')}</p>
+                    <div class="card-clickable" onclick="openProductDetail('${product._id}')">
+                        <h3 class="product-title" title="${escapeHtml(product.basliq)}">
+                            ${escapeHtml(product.basliq)}
+                        </h3>
+                        <p class="product-desc">${escapeHtml(product.tesvir || '')}</p>
+                    </div>
 
                     <div class="stock-status">
                         <span>●</span>
-                        <span>Stokda var • 24 saata pulsuz çatdırılma</span>
+                        <span>Stokda var • 💬 Rəylərə bax və yaz</span>
                     </div>
 
                     <div class="card-footer">
@@ -316,7 +343,7 @@ function renderProductsGrid(items) {
                             <span class="price-curr">${formatPrice(price)}</span>
                         </div>
 
-                        <button class="btn-add-cart" onclick="addToCart('${product._id}')">
+                        <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
                             <span>🛒</span>
                             <span>Səbətə at</span>
                         </button>
@@ -325,6 +352,258 @@ function renderProductsGrid(items) {
             </article>
         `;
     }).join('');
+}
+
+// ==================== PRODUCT DETAIL PAGE & REVIEWS ====================
+async function openProductDetail(productId) {
+    let product = state.products.find(p => p._id === productId);
+    if (!product) return;
+
+    state.activeProductId = productId;
+    state.detailQty = 1;
+    state.reviewRating = 5;
+
+    // Fetch fresh product data from backend to ensure latest reviews
+    try {
+        const res = await fetch(`/api/products/${productId}`);
+        if (res.ok) {
+            const freshProduct = await res.json();
+            product = freshProduct;
+            const idx = state.products.findIndex(p => p._id === productId);
+            if (idx > -1) state.products[idx] = freshProduct;
+        }
+    } catch (_) {
+        // Fallback to cached state product if offline
+    }
+
+    renderProductDetailView(product);
+
+    const homeView = document.getElementById('homeView');
+    const detailView = document.getElementById('productDetailView');
+    if (homeView) homeView.style.display = 'none';
+    if (detailView) detailView.style.display = 'block';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openFeaturedProductDetail() {
+    const featured = state.products.find(p => (p.basliq || '').includes('iPhone 16 Pro Max')) || state.products[0];
+    if (featured) {
+        openProductDetail(featured._id);
+    }
+}
+
+function closeProductDetail() {
+    state.activeProductId = null;
+    const homeView = document.getElementById('homeView');
+    const detailView = document.getElementById('productDetailView');
+    if (detailView) detailView.style.display = 'none';
+    if (homeView) homeView.style.display = 'block';
+    applyFiltersAndRender();
+}
+
+function renderProductDetailView(product) {
+    const cat = product.kategoriya || 'Elektronika';
+    const price = Number(product.qiymet) || 0;
+    const oldPrice = Math.round(price * 1.12);
+    const monthly = Math.ceil(price / 12);
+    const { rating, count } = getProductRatingInfo(product);
+    const icon = getProductIcon(product);
+    const isWishlisted = state.wishlist.includes(product._id);
+
+    // Breadcrumb & Titles
+    document.getElementById('detailBreadcrumbCat').textContent = cat;
+    document.getElementById('detailBreadcrumbTitle').textContent = product.basliq;
+    document.getElementById('detailCategoryBadge').textContent = cat;
+    document.getElementById('detailTitle').textContent = product.basliq;
+    document.getElementById('detailDescription').textContent = product.tesvir || '';
+
+    // Media
+    const mediaBox = document.getElementById('detailMediaBox');
+    if (product.sekilUrl) {
+        mediaBox.innerHTML = `
+            <img src="${escapeHtml(product.sekilUrl)}" alt="${escapeHtml(product.basliq)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="product-fallback-icon" style="display:none; font-size:5rem;">${icon}</div>
+        `;
+    } else {
+        mediaBox.innerHTML = `<div class="product-fallback-icon" style="font-size:5rem;">${icon}</div>`;
+    }
+
+    // Ratings & Sales
+    const starsStr = '⭐'.repeat(Math.round(rating)) || '⭐⭐⭐⭐⭐';
+    document.getElementById('detailStarsText').textContent = `${starsStr} ${rating.toFixed(1)}`;
+    document.getElementById('detailReviewsCountLink').textContent = `${count} müştəri rəyi`;
+    document.getElementById('detailSalesCount').textContent = `${product.satisSayi || 45} ədəd satılıb`;
+
+    // Prices
+    document.getElementById('detailCurrentPrice').textContent = formatPrice(price);
+    document.getElementById('detailOldPrice').textContent = formatPrice(oldPrice);
+    document.getElementById('detailMonthlyPrice').textContent = formatPrice(monthly);
+
+    // Qty & Buttons
+    document.getElementById('detailQtyVal').textContent = state.detailQty;
+    const addBtn = document.getElementById('detailAddToCartBtn');
+    addBtn.onclick = () => addToCartWithQty(product._id, state.detailQty);
+
+    const wishBtn = document.getElementById('detailWishlistBtn');
+    wishBtn.innerHTML = `<span>${isWishlisted ? '❤️' : '🤍'}</span>`;
+    wishBtn.onclick = () => {
+        toggleWishlist(product._id);
+        const nowWish = state.wishlist.includes(product._id);
+        wishBtn.innerHTML = `<span>${nowWish ? '❤️' : '🤍'}</span>`;
+    };
+
+    // Reset Star Picker to 5
+    selectReviewStar(5);
+
+    // Render Reviews List
+    renderReviewsSection(product);
+}
+
+function changeDetailQty(delta) {
+    state.detailQty = Math.max(1, state.detailQty + delta);
+    const el = document.getElementById('detailQtyVal');
+    if (el) el.textContent = state.detailQty;
+}
+
+function addToCartWithQty(productId, qty) {
+    const product = state.products.find(p => p._id === productId);
+    if (!product) return;
+
+    const existingIndex = state.cart.findIndex(item => item.id === productId);
+    if (existingIndex > -1) {
+        state.cart[existingIndex].say += qty;
+    } else {
+        state.cart.push({
+            id: product._id,
+            basliq: product.basliq,
+            qiymet: Number(product.qiymet),
+            sekilUrl: product.sekilUrl || '',
+            say: qty
+        });
+    }
+
+    saveCart();
+    updateCartBadge();
+    showToast(`${qty} ədəd "${product.basliq}" səbətə əlavə edildi! 🛒`);
+}
+
+function selectReviewStar(val) {
+    state.reviewRating = val;
+    const labels = {
+        1: '1 / 5 (Çox zəif)',
+        2: '2 / 5 (Zəif)',
+        3: '3 / 5 (Orta)',
+        4: '4 / 5 (Yaxşı)',
+        5: '5 / 5 (Əla)'
+    };
+
+    document.querySelectorAll('#starPicker .star-btn').forEach(btn => {
+        const bVal = Number(btn.getAttribute('data-val'));
+        btn.classList.toggle('active', bVal <= val);
+    });
+
+    const lbl = document.getElementById('selectedStarText');
+    if (lbl) lbl.textContent = labels[val] || '5 / 5';
+}
+
+function renderReviewsSection(product) {
+    const reviews = Array.isArray(product.reyler) ? [...product.reyler].reverse() : [];
+    const { rating } = getProductRatingInfo(product);
+
+    document.getElementById('reviewsBigScore').textContent = rating.toFixed(1);
+    document.getElementById('reviewsTotalSubtext').textContent = `${reviews.length} real alıcı rəyi`;
+    document.getElementById('reviewsListBadge').textContent = reviews.length;
+
+    const listEl = document.getElementById('detailReviewsList');
+    if (!listEl) return;
+
+    if (reviews.length === 0) {
+        listEl.innerHTML = `
+            <div class="empty-state" style="padding: 2.5rem 1.5rem;">
+                <p style="font-size: 2rem; margin-bottom: 0.4rem;">💬</p>
+                <h4 style="color: var(--text-main); margin-bottom: 0.3rem;">Hələlik bu məhsula rəy yazılmayıb</h4>
+                <p style="font-size: 0.85rem;">Sol tərəfdəki formanı dolduraraq ilk rəyi siz yaza bilərsiniz!</p>
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = reviews.map(r => {
+        const name = r.ad || 'Müştəri';
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'M';
+        const starsCount = Math.min(5, Math.max(1, Number(r.reyting) || 5));
+        const starsIcons = '⭐'.repeat(starsCount);
+
+        return `
+            <div class="review-item-card">
+                <div class="review-item-top">
+                    <div class="reviewer-profile">
+                        <div class="reviewer-avatar">${escapeHtml(initials)}</div>
+                        <div>
+                            <span class="reviewer-name">${escapeHtml(name)}</span>
+                            <span class="verified-buyer">✔ Təsdiqlənmiş Alıcı</span>
+                        </div>
+                    </div>
+                    <span class="review-stars-badge">${starsIcons} (${starsCount}/5)</span>
+                </div>
+                <p class="review-comment-text">${escapeHtml(r.sherh || '')}</p>
+            </div>
+        `;
+    }).join('');
+}
+
+async function handleReviewSubmit(e) {
+    e.preventDefault();
+
+    if (!state.token) {
+        showToast('Rəy yazmaq üçün zəhmət olmasa hesabınıza daxil olun! 👤');
+        openModal('authModal');
+        return;
+    }
+
+    const productId = state.activeProductId;
+    if (!productId) return;
+
+    const sherhInput = document.getElementById('reviewCommentInput');
+    const sherh = sherhInput.value.trim();
+    if (!sherh) {
+        showToast('Zəhmət olmasa rəy mətnini yazın.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitReviewBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Göndərilir...</span>';
+
+    try {
+        const res = await fetch(`/api/products/${productId}/reviews`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.token}`
+            },
+            body: JSON.stringify({
+                ad: state.user?.ad || state.user?.email || 'Müştəri',
+                reyting: state.reviewRating,
+                sherh: sherh
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Rəy əlavə edilmədi');
+
+        sherhInput.value = '';
+        showToast('Təşəkkürlər! Rəyiniz uğurla əlavə edildi! ⭐🎉');
+
+        // Yenilənmiş məhsulu alıb dərhal ekranda göstəririk
+        await openProductDetail(productId);
+    } catch (err) {
+        showToast(`Xəta: ${err.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Rəyi Göndər ⭐</span>';
+    }
 }
 
 function formatPrice(amount) {
@@ -340,11 +619,12 @@ function toggleWishlist(productId) {
         showToast('Məhsul bəyənilənlərə əlavə edildi! ❤️');
     }
     localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
-    applyFiltersAndRender();
+    if (!state.activeProductId) {
+        applyFiltersAndRender();
+    }
 }
 
 function quickAddFeatured() {
-    // Add iPhone 16 Pro Max to cart
     const featured = state.products.find(p => (p.basliq || '').includes('iPhone 16 Pro Max')) || state.products[0];
     if (featured) {
         addToCart(featured._id);
@@ -355,25 +635,7 @@ function quickAddFeatured() {
 
 // ==================== CART MANAGEMENT ====================
 function addToCart(productId) {
-    const product = state.products.find(p => p._id === productId);
-    if (!product) return;
-
-    const existingIndex = state.cart.findIndex(item => item.id === productId);
-    if (existingIndex > -1) {
-        state.cart[existingIndex].say += 1;
-    } else {
-        state.cart.push({
-            id: product._id,
-            basliq: product.basliq,
-            qiymet: Number(product.qiymet),
-            sekilUrl: product.sekilUrl || '',
-            say: 1
-        });
-    }
-
-    saveCart();
-    updateCartBadge();
-    showToast(`"${product.basliq}" səbətə əlavə edildi! 🛒`);
+    addToCartWithQty(productId, 1);
 }
 
 function saveCart() {
@@ -766,7 +1028,7 @@ async function handleAddProductSubmit(e) {
     }
 }
 
-// ==================== MODAL UTILITIES ====================
+// ==================== MODAL UTILITIES (Modern Web Guidance) ====================
 function openModal(id) {
     const dialog = document.getElementById(id);
     if (dialog && typeof dialog.showModal === 'function') {
@@ -775,20 +1037,22 @@ function openModal(id) {
 }
 
 function setupModalsLightDismiss() {
-    document.querySelectorAll('dialog').forEach(dialog => {
-        dialog.addEventListener('click', (e) => {
-            const rect = dialog.getBoundingClientRect();
-            const isInDialog = (
-                rect.top <= e.clientY &&
-                e.clientY <= rect.top + rect.height &&
-                rect.left <= e.clientX &&
-                e.clientX <= rect.left + rect.width
-            );
-            if (!isInDialog) {
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+        document.querySelectorAll('dialog').forEach(dialog => {
+            dialog.addEventListener('click', (event) => {
+                if (event.target !== dialog) return;
+                const rect = dialog.getBoundingClientRect();
+                const isDialogContent = (
+                    rect.top <= event.clientY &&
+                    event.clientY <= rect.top + rect.height &&
+                    rect.left <= event.clientX &&
+                    event.clientX <= rect.left + rect.width
+                );
+                if (isDialogContent) return;
                 dialog.close();
-            }
+            });
         });
-    });
+    }
 }
 
 function showToast(msg) {

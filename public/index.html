@@ -37,7 +37,7 @@
     <header class="navbar">
         <div class="nav-container">
             <!-- Brand Logo -->
-            <a href="#" class="brand-logo" onclick="resetFilters(); return false;">
+            <a href="#" class="brand-logo" onclick="closeProductDetail(); resetFilters(); return false;">
                 <div class="logo-icon">⚡</div>
                 <div class="logo-text-group">
                     <div class="logo-title">Tech<span>Store</span></div>
@@ -48,8 +48,8 @@
             <!-- Search Bar in Header -->
             <div class="nav-search-bar">
                 <span class="search-icon">🔍</span>
-                <input type="search" id="productSearchInput" placeholder="Məhsul, model və ya brend axtarın (məs: iPhone, M3, Sony)..."
-                    autocomplete="off">
+                <input type="search" id="productSearchInput"
+                    placeholder="Məhsul, model və ya brend axtarın (məs: iPhone, M3, Sony)..." autocomplete="off">
                 <button id="clearSearchBtn" class="clear-search-btn" style="display:none;" title="Təmizlə">✕</button>
             </div>
 
@@ -127,155 +127,330 @@
     <!-- Main Content -->
     <main class="main-container">
 
-        <!-- 4. Hero Showcase Banner -->
-        <section class="hero-showcase">
-            <div class="hero-grid">
-                <div class="hero-info">
-                    <div class="hero-tag-badge">
-                        <span class="pulse-dot"></span>
-                        <span>YENİ NƏSİL ELEKTRONİKA 2026</span>
-                    </div>
-                    <h1 class="hero-heading">Premium Texnologiya.<br>Rəsmi Zəmanətlə.</h1>
-                    <p class="hero-subtext">
-                        Ən son Apple A18 Pro və M3 çipli cihazlar, Galaxy AI dəstəkli flaqmanlar və Sony səs sistemləri 
-                        xüsusi endirimlərlə təqdim olunur.
-                    </p>
-                    <div class="hero-cta-group">
-                        <a href="#catalogAnchor" class="btn btn-primary btn-lg">
-                            <span>Kataloqa Bax</span>
-                            <span class="arrow">↓</span>
-                        </a>
-                        <button class="btn btn-secondary btn-lg" onclick="document.querySelector('[data-category=\'Smartfonlar\']').click()">
-                            <span>Smartfonlar</span>
-                        </button>
-                    </div>
-
-                    <!-- Trust Stats -->
-                    <div class="trust-stats">
-                        <div class="t-stat">
-                            <span class="t-val">100%</span>
-                            <span class="t-lbl">Orijinal və Qapalı Qutu</span>
+        <!-- ==================== ANA SƏHİFƏ VİTRİNİ (#homeView) ==================== -->
+        <div id="homeView">
+            <!-- 4. Hero Showcase Banner -->
+            <section class="hero-showcase">
+                <div class="hero-grid">
+                    <div class="hero-info">
+                        <div class="hero-tag-badge">
+                            <span class="pulse-dot"></span>
+                            <span>YENİ NƏSİL ELEKTRONİKA 2026</span>
                         </div>
-                        <div class="t-stat">
-                            <span class="t-val">24 Saat</span>
-                            <span class="t-lbl">Sürətli Çatdırılma</span>
-                        </div>
-                        <div class="t-stat">
-                            <span class="t-val">2 İl</span>
-                            <span class="t-lbl">Rəsmi Servis Zəmanəti</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hero-featured-card">
-                    <div class="featured-badge">🔥 HƏFTƏNİN SEÇİMİ</div>
-                    <div class="featured-img-wrap">
-                        <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80"
-                            alt="iPhone 16 Pro Max" class="featured-img" loading="eager">
-                    </div>
-                    <div class="featured-details">
-                        <span class="featured-cat">Apple Flaqman</span>
-                        <h3 class="featured-title">iPhone 16 Pro Max 256GB</h3>
-                        <p class="featured-spec">A18 Pro • Titan Qara • 48MP Kamera</p>
-                        <div class="featured-price-row">
-                            <div class="prices">
-                                <span class="old-price">3 499 ₼</span>
-                                <span class="current-price">3 199 ₼</span>
-                            </div>
-                            <button class="btn btn-primary btn-sm" onclick="quickAddFeatured()">
-                                <span>+ Səbətə At</span>
+                        <h1 class="hero-heading">Premium Texnologiya.<br>Rəsmi Zəmanətlə.</h1>
+                        <p class="hero-subtext">
+                            Ən son Apple A18 Pro və M3 çipli cihazlar, Galaxy AI dəstəkli flaqmanlar və Sony səs
+                            sistemləri xüsusi endirimlərlə təqdim olunur.
+                        </p>
+                        <div class="hero-cta-group">
+                            <a href="#catalogAnchor" class="btn btn-primary btn-lg">
+                                <span>Kataloqa Bax</span>
+                                <span class="arrow">↓</span>
+                            </a>
+                            <button class="btn btn-secondary btn-lg"
+                                onclick="document.querySelector('[data-category=\'Smartfonlar\']').click()">
+                                <span>Smartfonlar</span>
                             </button>
                         </div>
+
+                        <!-- Trust Stats -->
+                        <div class="trust-stats">
+                            <div class="t-stat">
+                                <span class="t-val">100%</span>
+                                <span class="t-lbl">Orijinal və Qapalı Qutu</span>
+                            </div>
+                            <div class="t-stat">
+                                <span class="t-val">24 Saat</span>
+                                <span class="t-lbl">Sürətli Çatdırılma</span>
+                            </div>
+                            <div class="t-stat">
+                                <span class="t-val">2 İl</span>
+                                <span class="t-lbl">Rəsmi Servis Zəmanəti</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hero-featured-card" onclick="openFeaturedProductDetail()" style="cursor: pointer;">
+                        <div class="featured-badge">🔥 HƏFTƏNİN SEÇİMİ</div>
+                        <div class="featured-img-wrap">
+                            <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80"
+                                alt="iPhone 16 Pro Max" class="featured-img" loading="eager">
+                        </div>
+                        <div class="featured-details">
+                            <span class="featured-cat">Apple Flaqman</span>
+                            <h3 class="featured-title">iPhone 16 Pro Max 256GB</h3>
+                            <p class="featured-spec">A18 Pro • Titan Qara • 48MP Kamera</p>
+                            <div class="featured-price-row">
+                                <div class="prices">
+                                    <span class="old-price">3 499 ₼</span>
+                                    <span class="current-price">3 199 ₼</span>
+                                </div>
+                                <button class="btn btn-primary btn-sm"
+                                    onclick="event.stopPropagation(); quickAddFeatured()">
+                                    <span>+ Səbətə At</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 5. Guarantees Bar -->
-        <section class="guarantees-bar">
-            <div class="guarantee-item">
-                <div class="g-icon">🚚</div>
-                <div class="g-content">
-                    <h4>Pulsuz Çatdırılma</h4>
-                    <p>Bütün sifarişlərə şəhərdaxili pulsuz</p>
+            <!-- 5. Guarantees Bar -->
+            <section class="guarantees-bar">
+                <div class="guarantee-item">
+                    <div class="g-icon">🚚</div>
+                    <div class="g-content">
+                        <h4>Pulsuz Çatdırılma</h4>
+                        <p>Bütün sifarişlərə şəhərdaxili pulsuz</p>
+                    </div>
                 </div>
-            </div>
-            <div class="guarantee-item">
-                <div class="g-icon">🛡️</div>
-                <div class="g-content">
-                    <h4>2 İl Rəsmi Zəmanət</h4>
-                    <p>İstehsalçı tərəfindən tam təminat</p>
+                <div class="guarantee-item">
+                    <div class="g-icon">🛡️</div>
+                    <div class="g-content">
+                        <h4>2 İl Rəsmi Zəmanət</h4>
+                        <p>İstehsalçı tərəfindən tam təminat</p>
+                    </div>
                 </div>
-            </div>
-            <div class="guarantee-item">
-                <div class="g-icon">💳</div>
-                <div class="g-content">
-                    <h4>Təhlükəsiz Ödəniş</h4>
-                    <p>Bcrypt & 256-bit SSL mühafizəsi</p>
+                <div class="guarantee-item">
+                    <div class="g-icon">💳</div>
+                    <div class="g-content">
+                        <h4>Təhlükəsiz Ödəniş</h4>
+                        <p>Bcrypt & 256-bit SSL mühafizəsi</p>
+                    </div>
                 </div>
-            </div>
-            <div class="guarantee-item">
-                <div class="g-icon">🔄</div>
-                <div class="g-content">
-                    <h4>14 Gün İadə</h4>
-                    <p>Bəyənməsəniz şərtsiz geri qaytarma</p>
+                <div class="guarantee-item">
+                    <div class="g-icon">🔄</div>
+                    <div class="g-content">
+                        <h4>14 Gün İadə</h4>
+                        <p>Bəyənməsəniz şərtsiz geri qaytarma</p>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 6. Catalog Section -->
-        <section class="catalog-section" id="catalogAnchor">
-            <div class="catalog-header">
-                <div>
-                    <div class="catalog-eyebrow">MƏHSUL SEÇİMİ</div>
-                    <h2 class="section-title">Populyar Texnologiya Kataloqu</h2>
-                    <p id="productsCountText" class="section-subtitle">Məhsullar yüklənir...</p>
+            <!-- 6. Catalog Section -->
+            <section class="catalog-section" id="catalogAnchor">
+                <div class="catalog-header">
+                    <div>
+                        <div class="catalog-eyebrow">MƏHSUL SEÇİMİ</div>
+                        <h2 class="section-title">Populyar Texnologiya Kataloqu</h2>
+                        <p id="productsCountText" class="section-subtitle">Məhsullar yüklənir...</p>
+                    </div>
+
+                    <div class="catalog-toolbar">
+                        <div id="adminActionGroup" class="admin-action-group" style="display: none;">
+                            <button id="adminAddProductBtn" class="btn btn-outline btn-sm">
+                                <span>+ Yeni Məhsul</span>
+                            </button>
+                            <button id="adminSeedBtn" class="btn btn-ghost btn-sm" onclick="seedSampleProducts()"
+                                title="10 real məhsulla bazanı təzələ">
+                                <span>🔄 Vitrini Sıfırla (Seed)</span>
+                            </button>
+                        </div>
+
+                        <!-- Sort Dropdown -->
+                        <div class="sort-wrapper">
+                            <label for="sortSelect">Sırala:</label>
+                            <select id="sortSelect" class="sort-select" onchange="handleSortChange(this.value)">
+                                <option value="default">Tövsiyə olunan</option>
+                                <option value="price-asc">Qiymət: Ucuzdan Bahaya</option>
+                                <option value="price-desc">Qiymət: Bahadan Ucuza</option>
+                                <option value="rating">Reytinqə görə (Yüksək)</option>
+                                <option value="sales">Ən çox satılanlar</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="catalog-toolbar">
-                    <div id="adminActionGroup" class="admin-action-group" style="display: none;">
-                        <button id="adminAddProductBtn" class="btn btn-outline btn-sm">
-                            <span>+ Yeni Məhsul</span>
+                <!-- Active Filter Status -->
+                <div id="filterStatusArea" class="filter-status-area" style="display: none;">
+                    <span id="filterStatusText"></span>
+                    <button class="btn-clear-filter" onclick="resetFilters()">Bütün filtrləri sıfırla ✕</button>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="productsGrid" class="products-grid">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Məhsullar bazadan yüklənir...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==================== MƏHSUL DETAL SƏHİFƏSİ VƏ RƏYLƏR (#productDetailView) ==================== -->
+        <section id="productDetailView" class="product-detail-view" style="display: none;">
+            <!-- Top Breadcrumb & Back Bar -->
+            <div class="detail-topbar">
+                <button class="btn btn-secondary btn-sm" onclick="closeProductDetail()">
+                    <span>← Kataloqa Qayıt</span>
+                </button>
+                <div class="breadcrumb-trail">
+                    <a href="#" onclick="closeProductDetail(); return false;">Ana Səhifə</a>
+                    <span>/</span>
+                    <span id="detailBreadcrumbCat">Kateqoriya</span>
+                    <span>/</span>
+                    <strong id="detailBreadcrumbTitle">Məhsul</strong>
+                </div>
+            </div>
+
+            <!-- Main Product Showcase Grid -->
+            <div class="detail-main-card">
+                <div class="detail-gallery-col">
+                    <div class="detail-badges">
+                        <span class="card-badge badge-trend">🔥 100% Orijinal</span>
+                        <span class="card-badge badge-new">🛡️ 2 İl Zəmanət</span>
+                    </div>
+                    <div id="detailMediaBox" class="detail-media-box">
+                        <!-- Şəkil bura dinamik yüklənir -->
+                    </div>
+                </div>
+
+                <div class="detail-info-col">
+                    <div class="detail-meta-top">
+                        <span id="detailCategoryBadge" class="cat-label">Smartfonlar</span>
+                        <span class="stock-pill">● Stokda var (24 saata çatdırılma)</span>
+                    </div>
+
+                    <h1 id="detailTitle" class="detail-product-title">Məhsulun Adı</h1>
+
+                    <div class="detail-rating-bar">
+                        <div id="detailStarsText" class="rating-stars">⭐⭐⭐⭐⭐ 5.0</div>
+                        <span class="dot-sep">•</span>
+                        <a href="#reviewsAnchor" id="detailReviewsCountLink" class="reviews-jump-link">0 müştəri rəyi</a>
+                        <span class="dot-sep">•</span>
+                        <span id="detailSalesCount" class="sales-label">85 ədəd satılıb</span>
+                    </div>
+
+                    <div class="detail-price-box">
+                        <div class="detail-prices-row">
+                            <span id="detailCurrentPrice" class="detail-curr-price">0 ₼</span>
+                            <span id="detailOldPrice" class="detail-old-price">0 ₼</span>
+                            <span class="discount-tag">-12% Endirim</span>
+                        </div>
+                        <div class="installment-banner">
+                            <span>💎 <strong>Birkart / Tamkart</strong> ilə 12 ay faizsiz: ayda cəmi <strong
+                                    id="detailMonthlyPrice">0 ₼</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="detail-desc-section">
+                        <h4>Məhsul Haqqında və Xüsusiyyətlər:</h4>
+                        <p id="detailDescription">Təsvir...</p>
+                    </div>
+
+                    <!-- Purchase Controls -->
+                    <div class="detail-actions-row">
+                        <div class="detail-qty-box">
+                            <button type="button" onclick="changeDetailQty(-1)">−</button>
+                            <span id="detailQtyVal">1</span>
+                            <button type="button" onclick="changeDetailQty(1)">+</button>
+                        </div>
+
+                        <button id="detailAddToCartBtn" class="btn btn-primary btn-lg detail-buy-btn">
+                            <span>🛒 Səbətə Əlavə Et</span>
                         </button>
-                        <button id="adminSeedBtn" class="btn btn-ghost btn-sm" onclick="seedSampleProducts()" title="10 real məhsulla bazanı təzələ">
-                            <span>🔄 Vitrini Sıfırla (Seed)</span>
+
+                        <button id="detailWishlistBtn" class="btn-icon detail-wish-btn" title="Seçilmişlərə əlavə et">
+                            <span>🤍</span>
                         </button>
                     </div>
 
-                    <!-- Sort Dropdown -->
-                    <div class="sort-wrapper">
-                        <label for="sortSelect">Sırala:</label>
-                        <select id="sortSelect" class="sort-select" onchange="handleSortChange(this.value)">
-                            <option value="default">Tövsiyə olunan</option>
-                            <option value="price-asc">Qiymət: Ucuzdan Bahaya</option>
-                            <option value="price-desc">Qiymət: Bahadan Ucuza</option>
-                            <option value="rating">Reytinqə görə (Yüksək)</option>
-                            <option value="sales">Ən çox satılanlar</option>
-                        </select>
+                    <!-- Extra Delivery Info -->
+                    <div class="detail-perks-grid">
+                        <div class="perk-box">
+                            <span>🚚</span>
+                            <div>
+                                <strong>Pulsuz Kuryer</strong>
+                                <small>Bakı daxili 24 saatda</small>
+                            </div>
+                        </div>
+                        <div class="perk-box">
+                            <span>🛡️</span>
+                            <div>
+                                <strong>Rəsmi Servis</strong>
+                                <small>2 il tam zəmanət</small>
+                            </div>
+                        </div>
+                        <div class="perk-box">
+                            <span>🔄</span>
+                            <div>
+                                <strong>Asan Qaytarma</strong>
+                                <small>14 gün ərzində</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Active Filter Status (when search or filter is applied) -->
-            <div id="filterStatusArea" class="filter-status-area" style="display: none;">
-                <span id="filterStatusText"></span>
-                <button class="btn-clear-filter" onclick="resetFilters()">Bütün filtrləri sıfırla ✕</button>
-            </div>
+            <!-- ==================== MƏHSULUN ALTINDAKI RƏY VƏ QİYMƏTLƏNDİRMƏ BÖLMƏSİ ==================== -->
+            <div id="reviewsAnchor" class="detail-reviews-wrapper">
+                <div class="reviews-header-bar">
+                    <div>
+                        <span class="catalog-eyebrow">MÜŞTƏRİ TƏCRÜBƏSİ</span>
+                        <h2 class="section-title">Məhsul Rəyləri və Qiymətləndirmə</h2>
+                    </div>
+                    <div class="overall-score-box">
+                        <span id="reviewsBigScore" class="big-score">5.0</span>
+                        <div>
+                            <div class="stars-row">⭐⭐⭐⭐⭐</div>
+                            <small id="reviewsTotalSubtext">0 rəy əsasında</small>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Products Grid -->
-            <div id="productsGrid" class="products-grid">
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p>Məhsullar bazadan yüklənir...</p>
+                <div class="reviews-content-grid">
+                    <!-- Sol Tərəf: Yeni Rəy Yazmaq Forması -->
+                    <div class="write-review-card">
+                        <h3>✍️ Rəy Bildirin</h3>
+                        <p class="write-review-sub">Bu məhsul haqqında fikirlərinizi digər alıcılarla bölüşün.</p>
+
+                        <form id="reviewForm" onsubmit="handleReviewSubmit(event)">
+                            <div class="form-group">
+                                <label>Qiymətləndirməniz (Ulduz seçin):</label>
+                                <div class="star-picker" id="starPicker">
+                                    <button type="button" class="star-btn active" data-val="1" onclick="selectReviewStar(1)">★</button>
+                                    <button type="button" class="star-btn active" data-val="2" onclick="selectReviewStar(2)">★</button>
+                                    <button type="button" class="star-btn active" data-val="3" onclick="selectReviewStar(3)">★</button>
+                                    <button type="button" class="star-btn active" data-val="4" onclick="selectReviewStar(4)">★</button>
+                                    <button type="button" class="star-btn active" data-val="5" onclick="selectReviewStar(5)">★</button>
+                                    <span id="selectedStarText" class="star-Text-lbl">5 / 5 (Əla)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reviewCommentInput">Rəyiniz:</label>
+                                <textarea id="reviewCommentInput" class="form-input" rows="4"
+                                    placeholder="Məhsulun keyfiyyəti, işləmə sürəti və çatdırılma haqqında fikrinizi yazın..."
+                                    required></textarea>
+                            </div>
+
+                            <button type="submit" id="submitReviewBtn" class="btn btn-primary btn-block">
+                                <span>Rəyi Göndər ⭐</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Sağ Tərəf: Yazılmış Rəylər Siyahısı -->
+                    <div class="reviews-list-col">
+                        <h3 class="reviews-list-heading">
+                            <span>💬 Alıcıların Rəyləri</span>
+                            <span id="reviewsListBadge" class="badge-count">0</span>
+                        </h3>
+
+                        <div id="detailReviewsList" class="detail-reviews-list">
+                            <!-- Dinamik rəylər bura yüklənəcək -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
+
     </main>
 
-    <!-- ==================== MODALS (<dialog> standard) ==================== -->
+    <!-- ==================== MODALS (<dialog closedby="any">) ==================== -->
 
     <!-- 1. Auth Modal -->
-    <dialog id="authModal" class="modal-dialog">
+    <dialog id="authModal" class="modal-dialog" closedby="any" aria-labelledby="authModalTitle">
         <div class="modal-card">
             <div class="modal-header">
                 <h3 id="authModalTitle" class="modal-title">Hesaba Giriş</h3>
@@ -313,11 +488,11 @@
     </dialog>
 
     <!-- 2. Cart Modal -->
-    <dialog id="cartModal" class="modal-dialog">
+    <dialog id="cartModal" class="modal-dialog" closedby="any" aria-labelledby="cartModalTitle">
         <div class="modal-card">
             <div class="modal-header">
                 <div class="modal-title-wrap">
-                    <h3 class="modal-title">Səbətiniz 🛒</h3>
+                    <h3 id="cartModalTitle" class="modal-title">Səbətiniz 🛒</h3>
                     <span id="cartModalCount" class="modal-subtitle">0 məhsul</span>
                 </div>
                 <button class="btn-close" onclick="document.getElementById('cartModal').close()">✕</button>
@@ -351,10 +526,10 @@
     </dialog>
 
     <!-- 3. Customer Orders Modal -->
-    <dialog id="myOrdersModal" class="modal-dialog modal-wide">
+    <dialog id="myOrdersModal" class="modal-dialog modal-wide" closedby="any" aria-labelledby="myOrdersModalTitle">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">Mənim Sifarişlərim 📦</h3>
+                <h3 id="myOrdersModalTitle" class="modal-title">Mənim Sifarişlərim 📦</h3>
                 <button class="btn-close" onclick="document.getElementById('myOrdersModal').close()">✕</button>
             </div>
 
@@ -367,11 +542,11 @@
     </dialog>
 
     <!-- 4. Admin Orders Modal -->
-    <dialog id="adminModal" class="modal-dialog modal-wide">
+    <dialog id="adminModal" class="modal-dialog modal-wide" closedby="any" aria-labelledby="adminModalTitle">
         <div class="modal-card">
             <div class="modal-header">
                 <div>
-                    <h3 class="modal-title">👑 Admin İdarəetmə Paneli</h3>
+                    <h3 id="adminModalTitle" class="modal-title">👑 Admin İdarəetmə Paneli</h3>
                     <p class="admin-subtitle">Bütün müştərilərin verdiyi sifarişlər və status idarəetməsi</p>
                 </div>
                 <button class="btn-close" onclick="document.getElementById('adminModal').close()">✕</button>
@@ -386,17 +561,18 @@
     </dialog>
 
     <!-- 5. Add Product Modal (Admin) -->
-    <dialog id="addProductModal" class="modal-dialog">
+    <dialog id="addProductModal" class="modal-dialog" closedby="any" aria-labelledby="addProductModalTitle">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">Yeni Məhsul Əlavə Et (Admin)</h3>
+                <h3 id="addProductModalTitle" class="modal-title">Yeni Məhsul Əlavə Et (Admin)</h3>
                 <button class="btn-close" onclick="document.getElementById('addProductModal').close()">✕</button>
             </div>
 
             <form id="addProductForm" class="modal-body" onsubmit="handleAddProductSubmit(event)">
                 <div class="form-group">
                     <label for="prodTitle">Məhsulun Adı</label>
-                    <input type="text" id="prodTitle" class="form-input" placeholder="Məs: iPhone 16 Pro Max 256GB" required>
+                    <input type="text" id="prodTitle" class="form-input" placeholder="Məs: iPhone 16 Pro Max 256GB"
+                        required>
                 </div>
                 <div class="form-group">
                     <label for="prodDesc">Təsviri və Xüsusiyyətləri</label>
@@ -405,8 +581,10 @@
                 </div>
                 <div class="form-group">
                     <label for="prodImage">Şəkil Linki (URL)</label>
-                    <input type="url" id="prodImage" class="form-input" placeholder="https://images.unsplash.com/photo-...">
-                    <small class="form-hint">Yüksək keyfiyyətli şəkil linki daxil edin (boş qalarsa avtomatik ikon qoyulacaq).</small>
+                    <input type="url" id="prodImage" class="form-input"
+                        placeholder="https://images.unsplash.com/photo-...">
+                    <small class="form-hint">Yüksək keyfiyyətli şəkil linki daxil edin (boş qalarsa avtomatik ikon
+                        qoyulacaq).</small>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -445,8 +623,8 @@
                         <div class="logo-title">Tech<span>Store</span></div>
                     </div>
                     <p class="footer-desc">
-                        Orijinal Apple, Samsung və Sony texnologiyalarını ən sərfəli şərtlərlə və rəsmi zəmanətlə təqdim edən
-                        müasir elektron ticarət platforması.
+                        Orijinal Apple, Samsung və Sony texnologiyalarını ən sərfəli şərtlərlə və rəsmi zəmanətlə təqdim
+                        edən müasir elektron ticarət platforması.
                     </p>
                     <div class="payment-methods">
                         <span class="pay-badge">💳 Visa</span>
@@ -459,28 +637,29 @@
                 <div class="footer-col">
                     <h4 class="footer-col-title">Kateqoriyalar</h4>
                     <ul class="footer-links">
-                        <li><a href="#" onclick="filterByCategory('Smartfonlar'); return false;">Smartfonlar</a></li>
-                        <li><a href="#" onclick="filterByCategory('Noutbuklar & PC'); return false;">Noutbuklar & PC</a></li>
-                        <li><a href="#" onclick="filterByCategory('Qulaqlıqlar & Audio'); return false;">Qulaqlıqlar & Audio</a></li>
-                        <li><a href="#" onclick="filterByCategory('Smart Saatlar'); return false;">Smart Saatlar</a></li>
-                        <li><a href="#" onclick="filterByCategory('Oyun & Konsollar'); return false;">Oyun Konsolları</a></li>
+                        <li><a href="#" onclick="closeProductDetail(); filterByCategory('Smartfonlar'); return false;">Smartfonlar</a></li>
+                        <li><a href="#" onclick="closeProductDetail(); filterByCategory('Noutbuklar & PC'); return false;">Noutbuklar & PC</a></li>
+                        <li><a href="#" onclick="closeProductDetail(); filterByCategory('Qulaqlıqlar & Audio'); return false;">Qulaqlıqlar & Audio</a></li>
+                        <li><a href="#" onclick="closeProductDetail(); filterByCategory('Smart Saatlar'); return false;">Smart Saatlar</a></li>
+                        <li><a href="#" onclick="closeProductDetail(); filterByCategory('Oyun & Konsollar'); return false;">Oyun Konsolları</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-col">
                     <h4 class="footer-col-title">Müştəri Xidməti</h4>
                     <ul class="footer-links">
-                        <li><a href="#" onclick="alert('Bütün sifarişlər Bakı daxili 24 saatda pulsuz çatdırılır.'); return false;">Çatdırılma və Ödəniş</a></li>
-                        <li><a href="#" onclick="alert('Bütün cihazlara 2 ilədək rəsmi istehsalçı zəmanəti verilir.'); return false;">Rəsmi Zəmanət</a></li>
-                        <li><a href="#" onclick="alert('Məhsul zədələnmədən 14 gün ərzində qutusunda geri qaytarıla bilər.'); return false;">Geri Qaytarma Şərtləri</a></li>
-                        <li><a href="#" onclick="alert('Əlaqə: +994 (12) 555-01-26 | info@techstore.az'); return false;">Bizimlə Əlaqə</a></li>
+                        <li><a href="#" onclick="showToast('Bütün sifarişlər Bakı daxili 24 saatda pulsuz çatdırılır.'); return false;">Çatdırılma və Ödəniş</a></li>
+                        <li><a href="#" onclick="showToast('Bütün cihazlara 2 ilədək rəsmi istehsalçı zəmanəti verilir.'); return false;">Rəsmi Zəmanət</a></li>
+                        <li><a href="#" onclick="showToast('Məhsul zədələnmədən 14 gün ərzində qutusunda geri qaytarıla bilər.'); return false;">Geri Qaytarma Şərtləri</a></li>
+                        <li><a href="#" onclick="showToast('Əlaqə: +994 (12) 555-01-26 | info@techstore.az'); return false;">Bizimlə Əlaqə</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-col">
                     <h4 class="footer-col-title">Texniki Arxitektura</h4>
                     <p class="tech-info">
-                        Layihə Node.js, Express.js (ESM), MongoDB Atlas, Bcrypt və JWT təhlükəsizlik alqoritmləri ilə qurulmuş tam funksional RESTful API-dir.
+                        Layihə Node.js, Express.js (ESM), MongoDB Atlas, Bcrypt və JWT təhlükəsizlik alqoritmləri ilə
+                        qurulmuş tam funksional RESTful API-dir.
                     </p>
                     <div class="dev-card">
                         <span>Mühəndis / Müəllif:</span>
