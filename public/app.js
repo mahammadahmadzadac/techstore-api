@@ -1,17 +1,51 @@
-// ==================== STATE MANAGEMENT ====================
+// ===================================================================
+// TechStore - Client-side Application Logic
+// Author: Məhəmməd Əhmədzadə
+// ===================================================================
+
 let state = {
     token: localStorage.getItem('token') || null,
     user: JSON.parse(localStorage.getItem('user')) || null,
     cart: JSON.parse(localStorage.getItem('cart')) || [],
+    wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     products: [],
-    authMode: 'login' // 'login' və ya 'register'
+    authMode: 'login',
+    searchQuery: '',
+    selectedCategory: 'all',
+    selectedSort: 'default',
+    theme: localStorage.getItem('theme') || 'dark'
 };
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initApp();
     setupModalsLightDismiss();
 });
+
+function initTheme() {
+    document.documentElement.setAttribute('data-theme', state.theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.textContent = state.theme === 'dark' ? '🌙' : '☀️';
+    }
+
+    const toggleBtn = document.getElementById('themeToggleBtn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleTheme);
+    }
+}
+
+function toggleTheme() {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('theme', state.theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.textContent = state.theme === 'dark' ? '🌙' : '☀️';
+    }
+    showToast(state.theme === 'dark' ? 'Qaranlıq rejim aktiv edildi 🌙' : 'İşıqlı rejim aktiv edildi ☀️');
+}
 
 function initApp() {
     updateNavUser();
@@ -27,152 +61,295 @@ function setupEventListeners() {
         openAuthBtn.addEventListener('click', () => openModal('authModal'));
     }
 
-    document.getElementById('cartBtn').addEventListener('click', () => {
-        renderCartModal();
-        openModal('cartModal');
-    });
+    const cartBtn = document.getElementById('cartBtn');
+    if (cartBtn) {
+        cartBtn.addEventListener('click', () => {
+            renderCartModal();
+            openModal('cartModal');
+        });
+    }
 
-    document.getElementById('myOrdersBtn').addEventListener('click', () => {
-        fetchMyOrders();
-        openModal('myOrdersModal');
-    });
+    const myOrdersBtn = document.getElementById('myOrdersBtn');
+    if (myOrdersBtn) {
+        myOrdersBtn.addEventListener('click', () => {
+            fetchMyOrders();
+            openModal('myOrdersModal');
+        });
+    }
 
-    document.getElementById('adminPanelBtn').addEventListener('click', () => {
-        fetchAdminOrders();
-        openModal('adminModal');
-    });
+    const adminPanelBtn = document.getElementById('adminPanelBtn');
+    if (adminPanelBtn) {
+        adminPanelBtn.addEventListener('click', () => {
+            fetchAdminOrders();
+            openModal('adminModal');
+        });
+    }
 
     const addProductBtn = document.getElementById('adminAddProductBtn');
     if (addProductBtn) {
         addProductBtn.addEventListener('click', () => openModal('addProductModal'));
     }
 
-    // Category Filter Pills
-    document.querySelectorAll('.pill').forEach(pill => {
-        pill.addEventListener('click', (e) => {
-            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-            pill.classList.add('active');
-            const category = pill.getAttribute('data-category');
-            filterProducts(category);
-        });
-    });
-}
-
-// Light dismiss for <dialog> (backdrop click to close)
-function setupModalsLightDismiss() {
-    document.querySelectorAll('dialog.modal-dialog').forEach(dialog => {
-        dialog.addEventListener('click', (e) => {
-            const rect = dialog.getBoundingClientRect();
-            const isInDialog = (
-                rect.top <= e.clientY &&
-                e.clientY <= rect.top + rect.height &&
-                rect.left <= e.clientX &&
-                e.clientX <= rect.left + rect.width
-            );
-            if (!isInDialog) {
-                dialog.close();
+    // Search Input in Header
+    const searchInput = document.getElementById('productSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.trim().toLowerCase();
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = state.searchQuery ? 'block' : 'none';
             }
+            applyFiltersAndRender();
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            state.searchQuery = '';
+            clearSearchBtn.style.display = 'none';
+            applyFiltersAndRender();
+        });
+    }
+
+    // Category Tabs in Subnav
+    document.querySelectorAll('.cat-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.selectedCategory = tab.getAttribute('data-category');
+            applyFiltersAndRender();
         });
     });
 }
 
-function openModal(id) {
-    const dialog = document.getElementById(id);
-    if (dialog && typeof dialog.showModal === 'function') {
-        dialog.showModal();
+function handleSortChange(sortValue) {
+    state.selectedSort = sortValue;
+    applyFiltersAndRender();
+}
+
+function filterByCategory(category) {
+    const tab = document.querySelector(`[data-category="${category}"]`);
+    if (tab) {
+        tab.click();
+        const catalogEl = document.getElementById('catalogAnchor');
+        if (catalogEl) catalogEl.scrollIntoView({ behavior: 'smooth' });
     }
 }
 
-// ==================== PRODUCTS API ====================
+function resetFilters() {
+    state.searchQuery = '';
+    state.selectedCategory = 'all';
+    state.selectedSort = 'default';
+
+    const searchInput = document.getElementById('productSearchInput');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    document.querySelectorAll('.cat-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-category') === 'all');
+    });
+
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) sortSelect.value = 'default';
+
+    applyFiltersAndRender();
+}
+
+// ==================== PRODUCTS FETCH & RENDER ====================
 async function fetchProducts() {
     const grid = document.getElementById('productsGrid');
     try {
         const res = await fetch('/api/products');
-        if (!res.ok) throw new Error('Məhsulları yükləmək mümkün olmadı.');
+        if (!res.ok) throw new Error('Məhsullar yüklənmədi');
         const data = await res.json();
         state.products = data;
-        renderProducts(state.products);
+        applyFiltersAndRender();
     } catch (err) {
-        grid.innerHTML = `
-            <div class="empty-state">
-                <p>⚠️ Məhsullar yüklənərkən xəta baş verdi: ${err.message}</p>
-                <button class="btn btn-outline" onclick="fetchProducts()" style="margin-top:1rem;">Yenidən cəhd et</button>
-            </div>
-        `;
+        if (grid) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <p style="font-size:1.5rem; margin-bottom:0.5rem;">⚠️</p>
+                    <p>Məhsulları bazadan yükləmək mümkün olmadı: ${escapeHtml(err.message)}</p>
+                </div>
+            `;
+        }
     }
 }
 
-function renderProducts(items) {
+function applyFiltersAndRender() {
+    let items = [...state.products];
+
+    // 1. Category Filter
+    if (state.selectedCategory !== 'all') {
+        const target = state.selectedCategory.toLowerCase();
+        items = items.filter(p => {
+            const cat = (p.kategoriya || '').toLowerCase();
+            return cat === target || cat.includes(target) || target.includes(cat);
+        });
+    }
+
+    // 2. Search Query Filter
+    if (state.searchQuery) {
+        items = items.filter(p => {
+            const title = (p.basliq || '').toLowerCase();
+            const desc = (p.tesvir || '').toLowerCase();
+            const cat = (p.kategoriya || '').toLowerCase();
+            return title.includes(state.searchQuery) || desc.includes(state.searchQuery) || cat.includes(state.searchQuery);
+        });
+    }
+
+    // 3. Sorting
+    if (state.selectedSort === 'price-asc') {
+        items.sort((a, b) => Number(a.qiymet) - Number(b.qiymet));
+    } else if (state.selectedSort === 'price-desc') {
+        items.sort((a, b) => Number(b.qiymet) - Number(a.qiymet));
+    } else if (state.selectedSort === 'rating') {
+        items.sort((a, b) => (Number(b.reyting) || 5) - (Number(a.reyting) || 5));
+    } else if (state.selectedSort === 'sales') {
+        items.sort((a, b) => (Number(b.satisSayi) || 0) - (Number(a.satisSayi) || 0));
+    }
+
+    // Update Counter & Filter Status
+    const countText = document.getElementById('productsCountText');
+    if (countText) {
+        countText.textContent = `${items.length} premium məhsul nümayiş olunur`;
+    }
+
+    const filterStatusArea = document.getElementById('filterStatusArea');
+    const filterStatusText = document.getElementById('filterStatusText');
+    if (filterStatusArea && filterStatusText) {
+        if (state.searchQuery || state.selectedCategory !== 'all') {
+            filterStatusArea.style.display = 'flex';
+            let label = [];
+            if (state.selectedCategory !== 'all') label.push(`Kateqoriya: "${state.selectedCategory}"`);
+            if (state.searchQuery) label.push(`Axtarış: "${state.searchQuery}"`);
+            filterStatusText.textContent = `${label.join(' • ')} (${items.length} nəticə)`;
+        } else {
+            filterStatusArea.style.display = 'none';
+        }
+    }
+
+    renderProductsGrid(items);
+}
+
+function renderProductsGrid(items) {
     const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+
     if (!items || items.length === 0) {
         grid.innerHTML = `
             <div class="empty-state">
-                <p>📦 Hələlik heç bir məhsul əlavə edilməyib.</p>
+                <p style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔍</p>
+                <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--text-main);">Axtarışınıza uyğun heç bir məhsul tapılmadı</h3>
+                <p style="margin-bottom: 1.2rem;">Fərqli açar sözlərlə axtarmağı və ya kateqoriya filtrini sıfırlamağı yoxlayın.</p>
+                <button class="btn btn-primary" onclick="resetFilters()">Filtrləri Sıfırla</button>
             </div>
         `;
         return;
     }
 
     grid.innerHTML = items.map(product => {
-        const cat = (product.kategoriya || '').toLowerCase();
-        const t = (product.basliq || '').toLowerCase();
+        const cat = (product.kategoriya || 'Elektronika');
+        const isWishlisted = state.wishlist.includes(product._id);
+        const rating = Number(product.reyting) || 5;
+        const reviewCount = Number(product.reySayi) || 48;
+        const price = Number(product.qiymet) || 0;
+        const oldPrice = Math.round(price * 1.12);
+
+        // Fallback icon based on category/title
         let icon = '⚡';
-        if (cat.includes('smartfon') || cat.includes('telefon') || t.includes('iphone') || t.includes('samsung') || t.includes('redmi')) icon = '📱';
-        else if (cat.includes('noutbuk') || cat.includes('pc') || t.includes('macbook') || t.includes('asus') || t.includes('dell')) icon = '💻';
-        else if (cat.includes('qulaqlıq') || cat.includes('audio') || t.includes('airpods') || t.includes('buds')) icon = '🎧';
-        else if (cat.includes('saat') || t.includes('watch')) icon = '⌚';
-        else if (cat.includes('planşet') || t.includes('ipad') || t.includes('tab')) icon = '📟';
-        else if (cat.includes('aksesuar')) icon = '🔌';
+        const t = (product.basliq || '').toLowerCase();
+        const c = cat.toLowerCase();
+        if (c.includes('smartfon') || t.includes('iphone') || t.includes('samsung')) icon = '📱';
+        else if (c.includes('noutbuk') || t.includes('macbook') || t.includes('laptop')) icon = '💻';
+        else if (c.includes('audio') || c.includes('qulaqlıq') || t.includes('sony') || t.includes('airpods')) icon = '🎧';
+        else if (c.includes('saat') || t.includes('watch')) icon = '⌚';
+        else if (c.includes('planşet') || t.includes('ipad')) icon = '📟';
+        else if (c.includes('oyun') || t.includes('playstation') || t.includes('ps5')) icon = '🎮';
 
         const mediaHtml = product.sekilUrl ? `
-            <div class="product-media">
-                <img src="${escapeHtml(product.sekilUrl)}" alt="${escapeHtml(product.basliq)}" class="product-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="product-icon-wrap" style="display:none;">${icon}</div>
+            <div class="card-media">
+                <img src="${escapeHtml(product.sekilUrl)}" alt="${escapeHtml(product.basliq)}" class="product-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="product-fallback-icon" style="display:none;">${icon}</div>
             </div>
         ` : `
-            <div class="product-media">
-                <div class="product-icon-wrap">${icon}</div>
+            <div class="card-media">
+                <div class="product-fallback-icon">${icon}</div>
             </div>
         `;
 
         return `
-            <div class="product-card">
-                <div>
-                    <div class="card-top">
-                        <span class="category-badge">${escapeHtml(product.kategoriya || 'Elektronika')}</span>
-                        <span class="rating-badge">⭐ ${product.reyting || 5}.0</span>
-                    </div>
-
-                    ${mediaHtml}
-                    <h3 class="product-title">${escapeHtml(product.basliq)}</h3>
-                    <p class="product-desc">${escapeHtml(product.tesvir)}</p>
-                </div>
-
-                <div class="card-footer">
-                    <div class="product-price">
-                        <span class="price-label">Qiymət</span>
-                        <span class="price-value">${product.qiymet} AZN</span>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="addToCart('${product._id}')">
-                        <span>+ Səbətə at</span>
+            <article class="product-card" id="product-${product._id}">
+                <div class="card-header">
+                    <span class="card-badge badge-trend">🔥 Orijinal</span>
+                    <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
+                        ${isWishlisted ? '❤️' : '🤍'}
                     </button>
                 </div>
-            </div>
+
+                ${mediaHtml}
+
+                <div class="card-content">
+                    <div class="meta-row">
+                        <span class="cat-label">${escapeHtml(cat)}</span>
+                        <div class="rating-stars" title="${rating} ulduz">
+                            <span>⭐</span>
+                            <span>${rating.toFixed(1)} (${reviewCount})</span>
+                        </div>
+                    </div>
+
+                    <h3 class="product-title" title="${escapeHtml(product.basliq)}">
+                        ${escapeHtml(product.basliq)}
+                    </h3>
+                    <p class="product-desc">${escapeHtml(product.tesvir || '')}</p>
+
+                    <div class="stock-status">
+                        <span>●</span>
+                        <span>Stokda var • 24 saata pulsuz çatdırılma</span>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="price-box">
+                            <span class="price-old">${formatPrice(oldPrice)}</span>
+                            <span class="price-curr">${formatPrice(price)}</span>
+                        </div>
+
+                        <button class="btn-add-cart" onclick="addToCart('${product._id}')">
+                            <span>🛒</span>
+                            <span>Səbətə at</span>
+                        </button>
+                    </div>
+                </div>
+            </article>
         `;
     }).join('');
 }
 
-function filterProducts(category) {
-    if (category === 'all') {
-        renderProducts(state.products);
+function formatPrice(amount) {
+    return Number(amount).toLocaleString('az-AZ') + ' ₼';
+}
+
+function toggleWishlist(productId) {
+    if (state.wishlist.includes(productId)) {
+        state.wishlist = state.wishlist.filter(id => id !== productId);
+        showToast('Məhsul bəyənilənlərdən çıxarıldı.');
     } else {
-        const target = category.toLowerCase();
-        const filtered = state.products.filter(p => {
-            const pCat = (p.kategoriya || '').toLowerCase();
-            return pCat === target || pCat.includes(target) || target.includes(pCat);
-        });
-        renderProducts(filtered);
+        state.wishlist.push(productId);
+        showToast('Məhsul bəyənilənlərə əlavə edildi! ❤️');
+    }
+    localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
+    applyFiltersAndRender();
+}
+
+function quickAddFeatured() {
+    // Add iPhone 16 Pro Max to cart
+    const featured = state.products.find(p => (p.basliq || '').includes('iPhone 16 Pro Max')) || state.products[0];
+    if (featured) {
+        addToCart(featured._id);
+    } else {
+        showToast('Məhsul tapılmadı.');
     }
 }
 
@@ -181,14 +358,15 @@ function addToCart(productId) {
     const product = state.products.find(p => p._id === productId);
     if (!product) return;
 
-    const existingItem = state.cart.find(item => item.id === productId);
-    if (existingItem) {
-        existingItem.say += 1;
+    const existingIndex = state.cart.findIndex(item => item.id === productId);
+    if (existingIndex > -1) {
+        state.cart[existingIndex].say += 1;
     } else {
         state.cart.push({
             id: product._id,
             basliq: product.basliq,
-            qiymet: product.qiymet,
+            qiymet: Number(product.qiymet),
+            sekilUrl: product.sekilUrl || '',
             say: 1
         });
     }
@@ -198,13 +376,74 @@ function addToCart(productId) {
     showToast(`"${product.basliq}" səbətə əlavə edildi! 🛒`);
 }
 
-function changeQty(productId, delta) {
-    const item = state.cart.find(i => i.id === productId);
+function saveCart() {
+    localStorage.setItem('cart', JSON.stringify(state.cart));
+}
+
+function updateCartBadge() {
+    const totalCount = state.cart.reduce((sum, item) => sum + item.say, 0);
+    const badge = document.getElementById('cartCountBadge');
+    if (badge) {
+        badge.textContent = totalCount;
+        badge.style.display = totalCount > 0 ? 'flex' : 'none';
+    }
+}
+
+function renderCartModal() {
+    const list = document.getElementById('cartItemsList');
+    const totalEl = document.getElementById('cartTotalPrice');
+    const countEl = document.getElementById('cartModalCount');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+
+    if (!list) return;
+
+    if (state.cart.length === 0) {
+        list.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                <p style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛒</p>
+                <p style="font-weight: 600; font-size: 1rem; color: var(--text-main);">Səbətiniz boşdur</p>
+                <p style="font-size: 0.85rem; margin-top: 0.2rem;">Kataloqdan zövqünüzə uyğun texnologiya məhsullarını əlavə edin.</p>
+            </div>
+        `;
+        if (totalEl) totalEl.textContent = '0 ₼';
+        if (countEl) countEl.textContent = '0 məhsul';
+        if (checkoutBtn) checkoutBtn.disabled = true;
+        return;
+    }
+
+    if (checkoutBtn) checkoutBtn.disabled = false;
+
+    const totalCount = state.cart.reduce((sum, item) => sum + item.say, 0);
+    const totalPrice = state.cart.reduce((sum, item) => sum + (item.qiymet * item.say), 0);
+
+    if (countEl) countEl.textContent = `${totalCount} ədəd məhsul`;
+    if (totalEl) totalEl.textContent = formatPrice(totalPrice);
+
+    list.innerHTML = state.cart.map(item => `
+        <div class="cart-item">
+            <img src="${item.sekilUrl || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100'}" alt="${escapeHtml(item.basliq)}" class="cart-item-img" onerror="this.src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100'">
+            <div class="cart-item-info">
+                <div class="cart-item-title">${escapeHtml(item.basliq)}</div>
+                <div class="cart-item-price">${formatPrice(item.qiymet)} x ${item.say} = <strong>${formatPrice(item.qiymet * item.say)}</strong></div>
+            </div>
+            <div class="cart-qty-ctrl">
+                <button class="btn-qty" onclick="changeCartQty('${item.id}', -1)">-</button>
+                <span style="font-weight:700; font-size:0.85rem; min-width:18px; text-align:center;">${item.say}</span>
+                <button class="btn-qty" onclick="changeCartQty('${item.id}', 1)">+</button>
+            </div>
+            <button class="btn-remove-item" onclick="removeFromCart('${item.id}')" title="Sil">✕</button>
+        </div>
+    `).join('');
+}
+
+function changeCartQty(id, delta) {
+    const item = state.cart.find(i => i.id === id);
     if (!item) return;
 
     item.say += delta;
     if (item.say <= 0) {
-        state.cart = state.cart.filter(i => i.id !== productId);
+        removeFromCart(id);
+        return;
     }
 
     saveCart();
@@ -212,59 +451,19 @@ function changeQty(productId, delta) {
     renderCartModal();
 }
 
-function saveCart() {
-    localStorage.setItem('cart', JSON.stringify(state.cart));
+function removeFromCart(id) {
+    state.cart = state.cart.filter(i => i.id !== id);
+    saveCart();
+    updateCartBadge();
+    renderCartModal();
+    showToast('Məhsul səbətdən silindi.');
 }
 
-function updateCartBadge() {
-    const badge = document.getElementById('cartCountBadge');
-    const totalCount = state.cart.reduce((sum, item) => sum + item.say, 0);
-    badge.textContent = totalCount;
-}
-
-function renderCartModal() {
-    const list = document.getElementById('cartItemsList');
-    const totalEl = document.getElementById('cartTotalPrice');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-
-    if (state.cart.length === 0) {
-        list.innerHTML = `<div class="empty-state"><p>Səbətiniz boşdur 🛍️</p></div>`;
-        totalEl.textContent = '0 AZN';
-        checkoutBtn.disabled = true;
-        return;
-    }
-
-    checkoutBtn.disabled = false;
-    let total = 0;
-
-    list.innerHTML = state.cart.map(item => {
-        const itemTotal = item.qiymet * item.say;
-        total += itemTotal;
-
-        return `
-            <div class="cart-item">
-                <div class="cart-item-info">
-                    <h4>${escapeHtml(item.basliq)}</h4>
-                    <span>${item.qiymet} AZN × ${item.say} = ${itemTotal} AZN</span>
-                </div>
-                <div class="cart-item-controls">
-                    <button class="btn-qty" onclick="changeQty('${item.id}', -1)">-</button>
-                    <span>${item.say}</span>
-                    <button class="btn-qty" onclick="changeQty('${item.id}', 1)">+</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    totalEl.textContent = `${total} AZN`;
-}
-
-// Checkout (Sifarişi Göndər)
 async function handleCheckout() {
     if (!state.token) {
+        showToast('Sifariş üçün əvvəlcə hesabınıza daxil olun!');
         document.getElementById('cartModal').close();
         openModal('authModal');
-        showToast('Sifariş vermək üçün əvvəlcə daxil olun! 🔒');
         return;
     }
 
@@ -275,16 +474,14 @@ async function handleCheckout() {
 
     const checkoutBtn = document.getElementById('checkoutBtn');
     checkoutBtn.disabled = true;
-    checkoutBtn.textContent = 'Sifariş göndərilir...';
+    checkoutBtn.textContent = 'Sifariş qəbul olunur...';
 
-    // Body formatı (orderController-ə uyğun)
     const payload = {
         mehsullar: state.cart.map(item => ({
             product: item.id,
             say: item.say,
             qiymet: item.qiymet
-        })),
-        umumiQiymet: state.cart.reduce((sum, item) => sum + (item.qiymet * item.say), 0)
+        }))
     };
 
     try {
@@ -300,13 +497,11 @@ async function handleCheckout() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Sifariş qəbul olunmadı');
 
-        // Uğurlu oldu! Səbəti təmizləyirik
         state.cart = [];
         saveCart();
         updateCartBadge();
         document.getElementById('cartModal').close();
-
-        showToast('Təbriklər! Sifarişiniz qəbul edildi! 🎉📦');
+        showToast('Təbriklər! Sifarişiniz uğurla qəbul edildi! 🎉📦');
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
     } finally {
@@ -361,7 +556,7 @@ async function handleAuthSubmit(e) {
             updateNavUser();
             showToast(`Xoş gəldiniz, ${data.user.ad || 'İstifadəçi'}! 👋`);
         } else {
-            showToast('Qeydiyyat uğurla tamamlandı! İndi daxil ola bilərsiniz.');
+            showToast('Qeydiyyat tamamlandı! İndi daxil ola bilərsiniz.');
             switchAuthTab('login');
         }
     } catch (err) {
@@ -384,7 +579,7 @@ function updateNavUser() {
     const area = document.getElementById('userProfileArea');
     const myOrdersBtn = document.getElementById('myOrdersBtn');
     const adminPanelBtn = document.getElementById('adminPanelBtn');
-    const adminAddProductBtn = document.getElementById('adminAddProductBtn');
+    const adminActionGroup = document.getElementById('adminActionGroup');
 
     if (state.token && state.user) {
         const isAdmin = state.user.role === 'admin';
@@ -398,124 +593,129 @@ function updateNavUser() {
         `;
 
         myOrdersBtn.style.display = 'inline-flex';
-        adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-        if (adminAddProductBtn) {
-            adminAddProductBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-        }
+        if (adminPanelBtn) adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        if (adminActionGroup) adminActionGroup.style.display = isAdmin ? 'inline-flex' : 'none';
     } else {
         area.innerHTML = `
             <button id="openAuthBtn" class="btn btn-primary" onclick="openModal('authModal')">
                 <span class="icon">👤</span>
-                <span>Daxil ol</span>
+                <span class="btn-text">Daxil ol</span>
             </button>
         `;
         myOrdersBtn.style.display = 'none';
-        adminPanelBtn.style.display = 'none';
-        if (adminAddProductBtn) {
-            adminAddProductBtn.style.display = 'none';
-        }
+        if (adminPanelBtn) adminPanelBtn.style.display = 'none';
+        if (adminActionGroup) adminActionGroup.style.display = 'none';
     }
 }
 
-// ==================== MY ORDERS (CUSTOMER) ====================
+// ==================== SEED PRODUCTS (ADMIN) ====================
+async function seedSampleProducts() {
+    if (!confirm("Bütün məhsullar 10 ədəd real premium elektronika modeli ilə yenilənəcək. Davam edilsin?")) {
+        return;
+    }
+
+    try {
+        showToast('Vitrindəki məhsullar yenilənir...');
+        const res = await fetch('/api/products/seed', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Seed xətası');
+
+        state.products = data.mehsullar || [];
+        applyFiltersAndRender();
+        showToast('Məhsullar uğurla yeniləndi və şəkillər yükləndi! 🎉');
+    } catch (err) {
+        showToast(`Xəta: ${err.message}`);
+    }
+}
+
+// ==================== ORDERS FETCHING ====================
 async function fetchMyOrders() {
     const list = document.getElementById('myOrdersList');
-    list.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Sifarişləriniz gətirilir...</p></div>`;
+    if (!list) return;
+
+    list.innerHTML = '<div class="spinner"></div>';
 
     try {
         const res = await fetch('/api/orders/myorders', {
             headers: { 'Authorization': `Bearer ${state.token}` }
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Sifarişləri oxumaq olmadı');
+        if (!res.ok) throw new Error(data.message || 'Sifarişlər yüklənmədi');
 
         if (data.length === 0) {
-            list.innerHTML = `<div class="empty-state"><p>Hələ heç bir sifarişiniz yoxdur. Vitrindən seçim edin! 🛒</p></div>`;
+            list.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:2rem;">Hələlik heç bir sifarişiniz yoxdur.</p>';
             return;
         }
 
-        list.innerHTML = data.map(order => {
-            const dateStr = new Date(order.createdAt).toLocaleString('az-AZ');
-            const itemsHtml = order.mehsullar.map(m => {
-                const title = m.product ? m.product.basliq : 'Məhsul';
-                return `<div>• ${escapeHtml(title)} — ${m.say} ədəd × ${m.qiymet} AZN</div>`;
-            }).join('');
-
-            return `
-                <div class="order-card">
-                    <div class="order-top">
-                        <span class="order-id">ID: ${order._id}</span>
-                        <span class="status-pill status-${order.status}">${order.status}</span>
-                    </div>
-                    <div class="order-products">
-                        ${itemsHtml}
-                    </div>
-                    <div class="order-footer">
-                        <small style="color:var(--text-dim);">${dateStr}</small>
-                        <strong style="color:var(--accent-cyan); font-size:1.1rem;">Yekun: ${order.umumiQiymet} AZN</strong>
-                    </div>
+        list.innerHTML = data.map(o => `
+            <div class="order-card">
+                <div class="order-header-row">
+                    <span class="order-id-badge">Sifariş #${o._id.slice(-6).toUpperCase()}</span>
+                    <span class="status-pill status-${o.status}">${o.status}</span>
                 </div>
-            `;
-        }).join('');
-
+                <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">
+                    Tarix: ${new Date(o.createdAt).toLocaleString('az-AZ')}
+                </div>
+                <div style="font-size:0.9rem; margin-bottom:0.5rem;">
+                    ${(o.mehsullar || []).map(m => `
+                        <div>• ${escapeHtml(m.product?.basliq || 'Məhsul')} x ${m.say} (${formatPrice(m.qiymet)})</div>
+                    `).join('')}
+                </div>
+                <div style="text-align:right; font-weight:800; font-size:1.05rem; color:var(--primary);">
+                    Yekun: ${formatPrice(o.umumiQiymet)}
+                </div>
+            </div>
+        `).join('');
     } catch (err) {
-        list.innerHTML = `<div class="empty-state"><p>Xəta: ${err.message}</p></div>`;
+        list.innerHTML = `<p class="alert alert-danger">${escapeHtml(err.message)}</p>`;
     }
 }
 
-// ==================== ADMIN ORDERS & STATUS ====================
 async function fetchAdminOrders() {
     const list = document.getElementById('adminOrdersList');
-    list.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Bütün sifarişlər gətirilir...</p></div>`;
+    if (!list) return;
+
+    list.innerHTML = '<div class="spinner"></div>';
 
     try {
         const res = await fetch('/api/orders', {
             headers: { 'Authorization': `Bearer ${state.token}` }
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Sifarişləri oxumaq olmadı');
+        if (!res.ok) throw new Error(data.message || 'Sifarişlər yüklənmədi');
 
         if (data.length === 0) {
-            list.innerHTML = `<div class="empty-state"><p>Mağazada hələ heç bir sifariş yoxdur.</p></div>`;
+            list.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:2rem;">Heç bir sifariş tapılmadı.</p>';
             return;
         }
 
-        list.innerHTML = data.map(order => {
-            const dateStr = new Date(order.createdAt).toLocaleString('az-AZ');
-            const customerName = order.user ? `${order.user.ad} (${order.user.email})` : 'Anonim Müştəri';
-            const itemsHtml = order.mehsullar.map(m => {
-                const title = m.product ? m.product.basliq : 'Məhsul';
-                return `<div>• ${escapeHtml(title)} — ${m.say} ədəd (${m.qiymet} AZN)</div>`;
-            }).join('');
-
-            return `
-                <div class="order-card">
-                    <div class="order-top">
-                        <div>
-                            <strong style="color:#fff;">👤 ${escapeHtml(customerName)}</strong>
-                            <div class="order-id">Sifariş ID: ${order._id}</div>
-                        </div>
-                        <div>
-                            <select class="admin-status-select" onchange="changeOrderStatus('${order._id}', this.value)">
-                                <option value="Gözləyir" ${order.status === 'Gözləyir' ? 'selected' : ''}>🟡 Gözləyir</option>
-                                <option value="Çatdırılır" ${order.status === 'Çatdırılır' ? 'selected' : ''}>🔵 Çatdırılır</option>
-                                <option value="Tamamlandı" ${order.status === 'Tamamlandı' ? 'selected' : ''}>🟢 Tamamlandı</option>
-                            </select>
-                        </div>
+        list.innerHTML = data.map(o => `
+            <div class="order-card">
+                <div class="order-header-row">
+                    <div>
+                        <span class="order-id-badge">Sifariş #${o._id.slice(-6).toUpperCase()}</span>
+                        <span style="margin-left:0.5rem; font-size:0.8rem; color:var(--text-dim);">
+                            Müştəri: <strong>${escapeHtml(o.user?.ad || o.user?.email || 'Naməlum')}</strong>
+                        </span>
                     </div>
-                    <div class="order-products">
-                        ${itemsHtml}
-                    </div>
-                    <div class="order-footer">
-                        <small style="color:var(--text-dim);">${dateStr}</small>
-                        <strong style="color:var(--accent-cyan); font-size:1.1rem;">Yekun: ${order.umumiQiymet} AZN</strong>
-                    </div>
+                    <select class="form-input" style="width:auto; padding:0.25rem 0.6rem; font-size:0.8rem;" onchange="changeOrderStatus('${o._id}', this.value)">
+                        <option value="Gözləyir" ${o.status === 'Gözləyir' ? 'selected' : ''}>⏳ Gözləyir</option>
+                        <option value="Çatdırılır" ${o.status === 'Çatdırılır' ? 'selected' : ''}>🚚 Çatdırılır</option>
+                        <option value="Tamamlandı" ${o.status === 'Tamamlandı' ? 'selected' : ''}>✅ Tamamlandı</option>
+                    </select>
                 </div>
-            `;
-        }).join('');
-
+                <div style="font-size:0.85rem; margin-bottom:0.4rem;">
+                    ${(o.mehsullar || []).map(m => `
+                        <div>• ${escapeHtml(m.product?.basliq || 'Məhsul')} x ${m.say} (${formatPrice(m.qiymet)})</div>
+                    `).join('')}
+                </div>
+                <div style="text-align:right; font-weight:800; color:var(--primary);">
+                    Yekun: ${formatPrice(o.umumiQiymet)}
+                </div>
+            </div>
+        `).join('');
     } catch (err) {
-        list.innerHTML = `<div class="empty-state"><p>Xəta: ${err.message}</p></div>`;
+        list.innerHTML = `<p class="alert alert-danger">${escapeHtml(err.message)}</p>`;
     }
 }
 
@@ -529,17 +729,14 @@ async function changeOrderStatus(orderId, newStatus) {
             },
             body: JSON.stringify({ status: newStatus })
         });
-
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Statusu dəyişmək olmadı');
-
-        showToast(`Sifariş #${orderId.slice(-4)} statusu: "${newStatus}" edildi! ✅`);
+        if (!res.ok) throw new Error(data.message || 'Status dəyişmədi');
+        showToast('Sifarişin statusu yeniləndi! ✅');
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
     }
 }
 
-// Admin Məhsul Əlavə Etmə
 async function handleAddProductSubmit(e) {
     e.preventDefault();
     const basliq = document.getElementById('prodTitle').value.trim();
@@ -548,11 +745,6 @@ async function handleAddProductSubmit(e) {
     const qiymet = Number(document.getElementById('prodPrice').value);
     const kategoriya = document.getElementById('prodCategory').value;
 
-    const payload = { basliq, tesvir, qiymet, kategoriya };
-    if (sekilUrl) {
-        payload.sekilUrl = sekilUrl;
-    }
-
     try {
         const res = await fetch('/api/products', {
             method: 'POST',
@@ -560,36 +752,60 @@ async function handleAddProductSubmit(e) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${state.token}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ basliq, tesvir, sekilUrl, qiymet, kategoriya, reyting: 5 })
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Məhsul əlavə edilmədi');
 
-        showToast('Yeni məhsul uğurla vitrinə əlavə edildi! 📱✨');
         document.getElementById('addProductModal').close();
         document.getElementById('addProductForm').reset();
-        fetchProducts(); // Vitrini yeniləyirik
+        showToast('Yeni məhsul uğurla əlavə edildi! 🎉');
+        fetchProducts();
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
     }
 }
 
-// ==================== TOAST HELPER ====================
-function showToast(message) {
+// ==================== MODAL UTILITIES ====================
+function openModal(id) {
+    const dialog = document.getElementById(id);
+    if (dialog && typeof dialog.showModal === 'function') {
+        dialog.showModal();
+    }
+}
+
+function setupModalsLightDismiss() {
+    document.querySelectorAll('dialog').forEach(dialog => {
+        dialog.addEventListener('click', (e) => {
+            const rect = dialog.getBoundingClientRect();
+            const isInDialog = (
+                rect.top <= e.clientY &&
+                e.clientY <= rect.top + rect.height &&
+                rect.left <= e.clientX &&
+                e.clientX <= rect.left + rect.width
+            );
+            if (!isInDialog) {
+                dialog.close();
+            }
+        });
+    });
+}
+
+function showToast(msg) {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.textContent = message;
-
+    toast.textContent = msg;
     container.appendChild(toast);
 
     setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3500);
+        setTimeout(() => toast.remove(), 400);
+    }, 3200);
 }
 
 function escapeHtml(str) {
@@ -599,5 +815,5 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(/'/g, '&#39;');
 }
