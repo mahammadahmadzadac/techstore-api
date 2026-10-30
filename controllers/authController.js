@@ -56,9 +56,18 @@ export const login = async (req, res) => {
         const token = jwt.sign({ id: user.id, role: user.role },
             process.env.JWT_SECRET, { expiresIn: '1d' }
         );
-        res.status(200).json({ mesaj: "Uğurla giriş etdiniz!", token, user });
+
+        // Təhlükəsizlik: Şifrəni (hətta hash olsa belə) müştəriyə qaytarmırıq!
+        const userMelumat = {
+            _id: user._id,
+            ad: user.ad,
+            email: user.email,
+            role: user.role
+        };
+
+        res.status(200).json({ mesaj: "Uğurla giriş etdiniz!", token, user: userMelumat });
 
     } catch (error) {
         res.status(500).json({ mesaj: "Server xətası", xeta: error.message });
     }
-}
+};
