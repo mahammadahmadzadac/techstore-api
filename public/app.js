@@ -16,12 +16,14 @@ let state = {
     theme: localStorage.getItem('theme') || 'dark',
     activeProductId: null,
     detailQty: 1,
-    reviewRating: 5
+    reviewRating: 5,
+    accent: localStorage.getItem('accent') || 'blue'
 };
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initAccent();
     initApp();
     setupModalsLightDismiss();
 });
@@ -39,6 +41,30 @@ function initTheme() {
     }
 }
 
+function initAccent() {
+    const saved = localStorage.getItem('accent') || 'blue';
+    setAccentTheme(saved, false);
+}
+
+function setAccentTheme(accentName, notify = true) {
+    state.accent = accentName;
+    document.documentElement.setAttribute('data-accent', accentName);
+    localStorage.setItem('accent', accentName);
+
+    document.querySelectorAll('.accent-dot').forEach(dot => {
+        dot.classList.toggle('active', dot.classList.contains(`dot-${accentName}`));
+    });
+
+    if (notify) {
+        const labels = {
+            blue: 'Cyber Blue ⚡',
+            emerald: 'Emerald Tech 🟢',
+            amber: 'Sunset Gold 🟠'
+        };
+        showToast(`Rəng mövzusu: ${labels[accentName] || accentName}`);
+    }
+}
+
 function toggleTheme() {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -53,6 +79,7 @@ function toggleTheme() {
 function initApp() {
     updateNavUser();
     updateCartBadge();
+    setupPopstateRouting();
     fetchProducts();
     setupEventListeners();
 }
@@ -175,6 +202,7 @@ async function fetchProducts() {
         const data = await res.json();
         state.products = data;
         applyFiltersAndRender();
+        checkInitialUrlRouting();
     } catch (err) {
         if (grid) {
             grid.innerHTML = `
@@ -394,13 +422,18 @@ function renderProductsGrid(items) {
 }
 
 // ==================== PRODUCT DETAIL PAGE & REVIEWS ====================
-async function openProductDetail(productId) {
+async function openProductDetail(productId, updateHistory = true) {
     let product = state.products.find(p => p._id === productId);
     if (!product) return;
 
     state.activeProductId = productId;
     state.detailQty = 1;
     state.reviewRating = 5;
+
+    // Browser History API: Brauzerin "Geri" / "İrəli" düymələrini və birbaşa link paylaşımını aktivləşdiririk
+    if (updateHistory) {
+        history.pushState({ view: 'detail', productId }, '', `#product=${productId}`);
+    }
 
     // Fetch fresh product data from backend to ensure latest reviews
     try {
@@ -432,13 +465,52 @@ function openFeaturedProductDetail() {
     }
 }
 
-function closeProductDetail() {
+function closeProductDetail(navigateBack = false) {
     state.activeProductId = null;
     const homeView = document.getElementById('homeView');
     const detailView = document.getElementById('productDetailView');
     if (detailView) detailView.style.display = 'none';
     if (homeView) homeView.style.display = 'block';
+
+    // Əgər istifadəçi "← Kataloqa Qayıt" düyməsini basıbsa, brauzerin geri funksiyasını çağırırıq
+    if (navigateBack) {
+        if (window.location.hash.startsWith('#product=')) {
+            history.back();
+            return;
+        }
+    } else {
+        // Popstate və ya normal bağlananda hash-i təmizləyirik
+        if (window.location.hash.startsWith('#product=')) {
+            history.replaceState({ view: 'home' }, '', window.location.pathname + window.location.search);
+        }
+    }
+
     applyFiltersAndRender();
+}
+
+function setupPopstateRouting() {
+    window.addEventListener('popstate', (e) => {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#product=')) {
+            const prodId = hash.replace('#product=', '');
+            if (prodId) {
+                openProductDetail(prodId, false);
+                return;
+            }
+        }
+        // Hash yoxdursa, kataloq görünüşünə qayıt
+        closeProductDetail(false);
+    });
+}
+
+function checkInitialUrlRouting() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#product=')) {
+        const prodId = hash.replace('#product=', '');
+        if (prodId) {
+            openProductDetail(prodId, false);
+        }
+    }
 }
 
 function renderProductDetailView(product) {
@@ -905,6 +977,16 @@ async function handleCheckout() {
         // Anbar stoklarını dərhal təzələ
         fetchProducts();
 
+        // Biznes Məntiqi: Sifariş Təsdiq və Qəbz Pəncərəsini göstər
+        showOrderSuccessModal(data.sifaris || {
+            _id: data.sifaris?._id || 'A91F2',
+            mehsullar: payload.mehsullar,
+            umumiQiymet: payload.mehsullar.reduce((s, m) => s + (m.qiymet * m.say), 0),
+            odenisNovu: payload.odenisNovu,
+            unvan: payload.unvan,
+            telefon: payload.telefon
+        });
+
         showToast('Təbriklər! Sifarişiniz uğurla qəbul edildi! 🎉📦');
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
@@ -912,6 +994,40 @@ async function handleCheckout() {
         checkoutBtn.disabled = false;
         checkoutBtn.textContent = 'Sifarişi Təsdiqlə və Al';
     }
+}
+
+function showOrderSuccessModal(sifaris) {
+    if (!sifaris) return;
+    const modal = document.getElementById('orderSuccessModal');
+    if (!modal) return;
+
+    const idEl = document.getElementById('receiptOrderId');
+    const countEl = document.getElementById('receiptItemCount');
+    const totalEl = document.getElementById('receiptTotalPrice');
+    const payEl = document.getElementById('receiptPaymentMethod');
+    const addrEl = document.getElementById('receiptAddress');
+    const phoneEl = document.getElementById('receiptPhone');
+
+    const shortId = sifaris._id ? sifaris._id.slice(-6).toUpperCase() : 'YENİ';
+    const totalCount = Array.isArray(sifaris.mehsullar)
+        ? sifaris.mehsullar.reduce((sum, m) => sum + (m.say || 1), 0)
+        : 1;
+
+    if (idEl) idEl.textContent = `#${shortId}`;
+    if (countEl) countEl.textContent = `${totalCount} ədəd məhsul`;
+    if (totalEl) totalEl.textContent = formatPrice(sifaris.umumiQiymet || 0);
+    if (payEl) payEl.textContent = sifaris.odenisNovu || 'Qapıda Nağd';
+    if (addrEl) addrEl.textContent = sifaris.unvan || '-';
+    if (phoneEl) phoneEl.textContent = sifaris.telefon || '-';
+
+    openModal('orderSuccessModal');
+}
+
+function openMyOrdersFromReceipt() {
+    const modal = document.getElementById('orderSuccessModal');
+    if (modal) modal.close();
+    fetchMyOrders();
+    openModal('myOrdersModal');
 }
 
 // ==================== AUTHENTICATION ====================
@@ -1248,7 +1364,17 @@ function showToast(msg) {
 
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.textContent = msg;
+
+    const isCartMsg = typeof msg === 'string' && msg.includes('səbətə əlavə edildi');
+    if (isCartMsg) {
+        toast.innerHTML = `
+            <span>${escapeHtml(msg)}</span>
+            <button type="button" class="toast-btn" onclick="openCartFromToast()">Səbətə bax 🛒</button>
+        `;
+    } else {
+        toast.textContent = msg;
+    }
+
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -1256,7 +1382,12 @@ function showToast(msg) {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 400);
-    }, 3200);
+    }, 3600);
+}
+
+function openCartFromToast() {
+    renderCartModal();
+    openModal('cartModal');
 }
 
 function escapeHtml(str) {

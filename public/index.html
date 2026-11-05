@@ -55,10 +55,17 @@
 
             <!-- Action Controls -->
             <div class="nav-actions">
-                <!-- Theme Toggle Button -->
-                <button id="themeToggleBtn" class="btn-icon" title="Temanı dəyiş">
-                    <span id="themeIcon">🌙</span>
-                </button>
+                <!-- Theme & Accent Controls -->
+                <div class="theme-controls-wrap">
+                    <button id="themeToggleBtn" class="btn-icon" title="Qaranlıq / İşıqlı rejim">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                    <div class="accent-picker" title="Rəng palitrasını dəyiş">
+                        <button type="button" class="accent-dot dot-blue active" onclick="setAccentTheme('blue')" title="Cyber Blue ⚡"></button>
+                        <button type="button" class="accent-dot dot-emerald" onclick="setAccentTheme('emerald')" title="Emerald Tech 🟢"></button>
+                        <button type="button" class="accent-dot dot-amber" onclick="setAccentTheme('amber')" title="Sunset Gold 🟠"></button>
+                    </div>
+                </div>
 
                 <!-- Customer Orders -->
                 <button id="myOrdersBtn" class="btn btn-ghost" style="display: none;">
@@ -281,11 +288,11 @@
         <section id="productDetailView" class="product-detail-view" style="display: none;">
             <!-- Top Breadcrumb & Back Bar -->
             <div class="detail-topbar">
-                <button class="btn btn-secondary btn-sm" onclick="closeProductDetail()">
+                <button class="btn btn-secondary btn-sm" onclick="closeProductDetail(true)">
                     <span>← Kataloqa Qayıt</span>
                 </button>
                 <div class="breadcrumb-trail">
-                    <a href="#" onclick="closeProductDetail(); return false;">Ana Səhifə</a>
+                    <a href="#" onclick="closeProductDetail(true); return false;">Ana Səhifə</a>
                     <span>/</span>
                     <span id="detailBreadcrumbCat">Kateqoriya</span>
                     <span>/</span>
@@ -636,6 +643,57 @@
                     <span>Məhsulu Bazaya Yadda Saxla</span>
                 </button>
             </form>
+        </div>
+    </dialog>
+
+    <!-- 6. Order Success Receipt Modal (Biznes Məntiqi: Sifariş Çeki) -->
+    <dialog id="orderSuccessModal" class="modal-dialog" closedby="any" aria-labelledby="orderSuccessTitle">
+        <div class="modal-card order-success-card">
+            <div class="success-icon-wrap">
+                <span class="success-icon-emoji">🎉</span>
+            </div>
+            <h3 id="orderSuccessTitle" class="modal-title" style="text-align:center; margin-bottom: 0.3rem;">Sifarişiniz Uğurla Qəbul Edildi!</h3>
+            <p class="modal-subtitle" style="text-align:center; margin-bottom: 1.5rem;">Kuryerimiz 24 saat ərzində ünvanınıza çatdıracaq.</p>
+
+            <div class="order-receipt-box">
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Sifariş Nömrəsi:</span>
+                    <strong id="receiptOrderId" class="receipt-val text-primary" style="font-family:monospace; font-size:1rem;">#A83BC4</strong>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Məhsul Sayı:</span>
+                    <span id="receiptItemCount" class="receipt-val">0 ədəd</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Yekun Məbləğ:</span>
+                    <strong id="receiptTotalPrice" class="receipt-val text-success" style="font-size:1.05rem;">0 ₼</strong>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Ödəniş Üsulu:</span>
+                    <span id="receiptPaymentMethod" class="receipt-val">Qapıda Nağd</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Çatdırılma Ünvanı:</span>
+                    <span id="receiptAddress" class="receipt-val">...</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-lbl">Əlaqə Nömrəsi:</span>
+                    <span id="receiptPhone" class="receipt-val">+994 ...</span>
+                </div>
+                <div class="receipt-row" style="border-top:1px dashed var(--border-color); padding-top:0.6rem; margin-top:0.4rem;">
+                    <span class="receipt-lbl">Çatdırılma Müddəti:</span>
+                    <span class="receipt-val" style="color:var(--success); font-weight:700;">🚀 24 saat ərzində (Pulsuz)</span>
+                </div>
+            </div>
+
+            <div class="success-actions-row">
+                <button type="button" class="btn btn-primary btn-block btn-lg" onclick="openMyOrdersFromReceipt()">
+                    <span>📦 Sifarişlərimə Bax</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" onclick="document.getElementById('orderSuccessModal').close()">
+                    <span>⚡ Alış-verişə Davam Et</span>
+                </button>
+            </div>
         </div>
     </dialog>
 
