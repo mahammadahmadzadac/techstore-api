@@ -138,23 +138,30 @@ export const updateOrderStatus = async (req, res) => {
 
         const evvelkiStatus = sifaris.status;
         sifaris.status = status;
+
+        // Köhnə sifarişlərdə unvan və ya telefon sahəsi yoxdursa, Mongoose xətası verməsin deyə təmin edirik
+        if (!sifaris.unvan) sifaris.unvan = 'Göstərilməyib';
+        if (!sifaris.telefon) sifaris.telefon = '-';
+
         await sifaris.save();
 
         // Əgər admin sifarişi "Ləğv edildi" edirsə və əvvəl ləğv edilməmişdisə, stoku geri qaytarırıq
         if (status === 'Ləğv edildi' && evvelkiStatus !== 'Ləğv edildi') {
-            for (const item of sifaris.mehsullar) {
-                const productDoc = await Product.findById(item.product);
-                if (productDoc) {
-                    productDoc.stokSayi = (productDoc.stokSayi || 0) + item.say;
-                    productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - item.say);
-                    await productDoc.save();
+            for (const item of (sifaris.mehsullar || [])) {
+                if (item && item.product) {
+                    const productDoc = await Product.findById(item.product);
+                    if (productDoc) {
+                        productDoc.stokSayi = (productDoc.stokSayi || 0) + (Number(item.say) || 1);
+                        productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - (Number(item.say) || 1));
+                        await productDoc.save();
+                    }
                 }
             }
         }
 
         res.status(200).json({ message: "Sifariş statusu yeniləndi! ✅", sifaris });
     } catch (error) {
-        res.status(500).json({ message: "Xəta baş verdi", xeta: error.message });
+        res.status(500).json({ message: error.message || "Xəta baş verdi", xeta: error.message });
     }
 };
 
@@ -182,15 +189,22 @@ export const cancelOrder = async (req, res) => {
         }
 
         sifaris.status = 'Ləğv edildi';
+
+        // Köhnə sifarişlərdə unvan və ya telefon sahəsi yoxdursa, Mongoose xətası verməsin deyə təmin edirik
+        if (!sifaris.unvan) sifaris.unvan = 'Göstərilməyib';
+        if (!sifaris.telefon) sifaris.telefon = '-';
+
         await sifaris.save();
 
         // Biznes Məntiqi: Məhsulları anbara (stoka) geri qaytarırıq
-        for (const item of sifaris.mehsullar) {
-            const productDoc = await Product.findById(item.product);
-            if (productDoc) {
-                productDoc.stokSayi = (productDoc.stokSayi || 0) + item.say;
-                productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - item.say);
-                await productDoc.save();
+        for (const item of (sifaris.mehsullar || [])) {
+            if (item && item.product) {
+                const productDoc = await Product.findById(item.product);
+                if (productDoc) {
+                    productDoc.stokSayi = (productDoc.stokSayi || 0) + (Number(item.say) || 1);
+                    productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - (Number(item.say) || 1));
+                    await productDoc.save();
+                }
             }
         }
 
@@ -199,6 +213,19 @@ export const cancelOrder = async (req, res) => {
             sifaris
         });
     } catch (error) {
-        res.status(500).json({ message: "Xəta baş verdi", xeta: error.message });
+        res.status(500).json({ message: error.message || "Xəta baş verdi", xeta: error.message });
+    }
+};
+
+// 6. Sifarişi Bazadan Tam Silmək (Yalnız Admin üçün)
+export const deleteOrder = async (req, res) => {
+    try {
+        const sifaris = await Order.findByIdAndDelete(req.params.id);
+        if (!sifaris) {
+            return res.status(404).json({ message: "Sifariş tapılmadı!" });
+        }
+        res.status(200).json({ message: "Sifariş bazadan uğurla silindi! 🗑️" });
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Xəta baş verdi", xeta: error.message });
     }
 };

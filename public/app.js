@@ -351,9 +351,16 @@ function renderProductsGrid(items) {
             <article class="product-card" id="product-${product._id}">
                 <div class="card-header">
                     <span class="card-badge badge-clean">Orijinal • 2 İl Zəmanət</span>
-                    <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
-                        ${isWishlisted ? '❤️' : '🤍'}
-                    </button>
+                    <div style="display:flex; gap:0.3rem; align-items:center;">
+                        ${state.user && state.user.role === 'admin' ? `
+                            <button class="btn-wishlist" style="color:var(--danger);" onclick="event.stopPropagation(); adminDeleteProduct('${product._id}')" title="Məhsulu sil (Admin)">
+                                🗑️
+                            </button>
+                        ` : ''}
+                        <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
+                            ${isWishlisted ? '❤️' : '🤍'}
+                        </button>
+                    </div>
                 </div>
 
                 ${mediaHtml}
@@ -566,6 +573,26 @@ function renderProductDetailView(product) {
 
     // Reset Star Picker to 5
     selectReviewStar(5);
+
+    // Admin Actions Bar (Delete Product)
+    const adminBox = document.getElementById('adminProductDetailActions');
+    if (adminBox) {
+        if (state.user && state.user.role === 'admin') {
+            adminBox.innerHTML = `
+                <div style="background:rgba(239, 68, 68, 0.08); border:1px dashed var(--danger); border-radius:var(--radius-md); padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="color:var(--danger); font-size:0.9rem;">👑 Admin İdarəetməsi</strong>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Bu məhsulu vitrindən və bazadan tamamilə silmək</div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger); font-weight:700;" onclick="adminDeleteProduct('${product._id}')">
+                        🗑️ Məhsulu Sil
+                    </button>
+                </div>
+            `;
+        } else {
+            adminBox.innerHTML = '';
+        }
+    }
 
     // Render Reviews List
     renderReviewsSection(product);
@@ -1223,12 +1250,17 @@ async function fetchAdminOrders() {
                             Müştəri: <strong>${escapeHtml(o.user?.ad || o.user?.email || 'Naməlum')}</strong>
                         </span>
                     </div>
-                    <select class="form-input" style="width:auto; padding:0.25rem 0.6rem; font-size:0.8rem;" onchange="changeOrderStatus('${o._id}', this.value)">
-                        <option value="Gözləyir" ${o.status === 'Gözləyir' ? 'selected' : ''}>⏳ Gözləyir</option>
-                        <option value="Çatdırılır" ${o.status === 'Çatdırılır' ? 'selected' : ''}>🚚 Çatdırılır</option>
-                        <option value="Tamamlandı" ${o.status === 'Tamamlandı' ? 'selected' : ''}>✅ Tamamlandı</option>
-                        <option value="Ləğv edildi" ${o.status === 'Ləğv edildi' ? 'selected' : ''}>❌ Ləğv edildi</option>
-                    </select>
+                    <div style="display:flex; gap:0.4rem; align-items:center;">
+                        <select class="form-input" style="width:auto; padding:0.25rem 0.5rem; font-size:0.8rem;" onchange="changeOrderStatus('${o._id}', this.value)">
+                            <option value="Gözləyir" ${o.status === 'Gözləyir' ? 'selected' : ''}>⏳ Gözləyir</option>
+                            <option value="Çatdırılır" ${o.status === 'Çatdırılır' ? 'selected' : ''}>🚚 Çatdırılır</option>
+                            <option value="Tamamlandı" ${o.status === 'Tamamlandı' ? 'selected' : ''}>✅ Tamamlandı</option>
+                            <option value="Ləğv edildi" ${o.status === 'Ləğv edildi' ? 'selected' : ''}>❌ Ləğv edildi</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:rgba(239, 68, 68, 0.4); padding:0.25rem 0.5rem; font-size:0.8rem;" onclick="adminDeleteOrder('${o._id}')" title="Sifarişi sil">
+                            🗑️ Sil
+                        </button>
+                    </div>
                 </div>
                 <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">
                     Tarix: ${new Date(o.createdAt).toLocaleString('az-AZ')}
@@ -1264,8 +1296,43 @@ async function changeOrderStatus(orderId, newStatus) {
             body: JSON.stringify({ status: newStatus })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Status dəyişmədi');
-        showToast('Sifarişin statusu yeniləndi! ✅');
+        if (!res.ok) throw new Error(data.message || data.xeta || 'Status dəyişmədi');
+        showToast(data.message || 'Sifarişin statusu yeniləndi! ✅');
+        fetchAdminOrders();
+    } catch (err) {
+        showToast(`Xəta: ${err.message}`);
+        fetchAdminOrders();
+    }
+}
+
+async function adminDeleteOrder(orderId) {
+    if (!confirm("Bu sifarişi bazadan tamamilə silmək istəyirsiniz?")) return;
+    try {
+        const res = await fetch(`/api/orders/${orderId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.xeta || 'Sifariş silinmədi');
+        showToast(data.message || 'Sifariş bazadan silindi! 🗑️');
+        fetchAdminOrders();
+    } catch (err) {
+        showToast(`Xəta: ${err.message}`);
+    }
+}
+
+async function adminDeleteProduct(productId) {
+    if (!confirm("Bu məhsulu vitrindən və bazadan tamamilə silmək istəyirsiniz?")) return;
+    try {
+        const res = await fetch(`/api/products/${productId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.xeta || 'Məhsul silinmədi');
+        showToast(data.message || 'Məhsul uğurla silindi! 🗑️');
+        closeProductDetail(true);
+        fetchProducts();
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
     }

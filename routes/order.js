@@ -4,7 +4,8 @@ import {
     getMyOrders,
     getAllOrders,
     updateOrderStatus,
-    cancelOrder
+    cancelOrder,
+    deleteOrder
 } from '../controllers/orderController.js';
 import { gozetci, adminGozetci } from '../middleware/authMiddleware.js';
 
@@ -24,5 +25,8 @@ router.put('/:id/status', gozetci, adminGozetci, updateOrderStatus);
 
 // 5. Sifarişi ləğv etmək (Sifarişi verən müştəri və ya Admin)
 router.put('/:id/cancel', gozetci, cancelOrder);
+
+// 6. Sifarişi silmək (Yalnız Admin)
+router.delete('/:id', gozetci, adminGozetci, deleteOrder);
 
 export default router;

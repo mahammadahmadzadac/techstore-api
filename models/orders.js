@@ -37,14 +37,14 @@ const orderSchema = new mongoose.Schema({
         default: 'Gözləyir', // 'Gözləyir', 'Çatdırılır', 'Tamamlandı', 'Ləğv edildi'
         enum: ['Gözləyir', 'Çatdırılır', 'Tamamlandı', 'Ləğv edildi']
     },
-    // 5. Biznes Məntiqi: Çatdırılma ünvanı və əlaqə məlumatları
+    // 5. Biznes Məntiqi: Çatdırılma ünvanı və əlaqə məlumatları (Köhnə sifarişlərlə uyğunluq üçün defolt dəyərlərlə)
     unvan: {
         type: String,
-        required: true
+        default: 'Göstərilməyib'
     },
     telefon: {
         type: String,
-        required: true
+        default: '-'
     },
     kuryerQeydi: {
         type: String,
