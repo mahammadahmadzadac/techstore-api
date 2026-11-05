@@ -250,7 +250,7 @@ function applyFiltersAndRender() {
     // Update Counter & Filter Status
     const countText = document.getElementById('productsCountText');
     if (countText) {
-        countText.textContent = `${items.length} premium məhsul nümayiş olunur (Məhsulun üzərinə klikləyərək rəylərə baxa bilərsiniz)`;
+        countText.textContent = `${items.length} məhsul nümayiş olunur`;
     }
 
     const filterStatusArea = document.getElementById('filterStatusArea');
@@ -1099,7 +1099,7 @@ function updateNavUser() {
 
 // ==================== SEED PRODUCTS (ADMIN) ====================
 async function seedSampleProducts() {
-    if (!confirm("Bütün məhsullar 10 ədəd real premium elektronika modeli ilə yenilənəcək. Davam edilsin?")) {
+    if (!confirm("Bütün məhsullar 10 ədəd orijinal elektronika modeli ilə yenilənəcək. Davam edilsin?")) {
         return;
     }
 
@@ -1328,7 +1328,21 @@ function setupModalsLightDismiss() {
 }
 
 function showToast(msg) {
-    const container = document.getElementById('toastContainer');
+    // Əgər açıq modal pəncərə varsa, bildirişi modalın daxilinə qoyuruq (arxada blurlu qalmasın deyə!)
+    const openDialog = document.querySelector('dialog[open]');
+    let container;
+
+    if (openDialog) {
+        container = openDialog.querySelector('.dialog-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'dialog-toast-container';
+            openDialog.appendChild(container);
+        }
+    } else {
+        container = document.getElementById('toastContainer');
+    }
+
     if (!container) return;
 
     const toast = document.createElement('div');
@@ -1338,7 +1352,7 @@ function showToast(msg) {
     if (isCartMsg) {
         toast.innerHTML = `
             <span>${escapeHtml(msg)}</span>
-            <button type="button" class="toast-btn" onclick="openCartFromToast()">Səbətə bax 🛒</button>
+            <button type="button" class="toast-btn" onclick="openCartFromToast()">Səbətə bax</button>
         `;
     } else {
         toast.textContent = msg;
@@ -1347,10 +1361,10 @@ function showToast(msg) {
     container.appendChild(toast);
 
     setTimeout(() => {
-        toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
-        setTimeout(() => toast.remove(), 400);
+        setTimeout(() => toast.remove(), 350);
     }, 3600);
 }
 
