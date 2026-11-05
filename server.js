@@ -1,5 +1,7 @@
 import dns from 'dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+try {
+    dns.setServers(['1.1.1.1', '8.8.8.8', '1.0.0.1', '8.8.4.4']);
+} catch (_) {}
 
 import express from 'express';
 import mongoose from 'mongoose';

@@ -2086,3 +2086,59 @@ dialog::backdrop {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* ==================== 14. INVENTORY & CHECKOUT DELIVERY STYLES ==================== */
+.checkout-delivery-form {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.15rem;
+    margin-bottom: 1.25rem;
+}
+
+.delivery-form-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.9rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.stock-status.stock-low {
+    color: var(--warning);
+    font-weight: 700;
+}
+
+.stock-status.stock-out {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.btn-disabled {
+    opacity: 0.55;
+    cursor: not-allowed !important;
+    background: var(--bg-subtle) !important;
+    color: var(--text-dim) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.order-delivery-info {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+    margin: 0.65rem 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.order-delivery-info strong {
+    color: var(--text-main);
+}

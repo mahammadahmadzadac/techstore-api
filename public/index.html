@@ -308,7 +308,7 @@
                 <div class="detail-info-col">
                     <div class="detail-meta-top">
                         <span id="detailCategoryBadge" class="cat-label">Smartfonlar</span>
-                        <span class="stock-pill">● Stokda var (24 saata çatdırılma)</span>
+                        <span id="detailStockPill" class="stock-pill">● Stokda var (24 saata çatdırılma)</span>
                     </div>
 
                     <h1 id="detailTitle" class="detail-product-title">Məhsulun Adı</h1>
@@ -501,6 +501,35 @@
             <div class="modal-body">
                 <div id="cartItemsList" class="cart-items-list">
                     <!-- Dinamik səbət elementləri -->
+                </div>
+
+                <!-- Biznes Məntiqi: Çatdırılma və Əlaqə Məlumatları -->
+                <div class="checkout-delivery-form" id="checkoutDeliverySection">
+                    <h4 class="delivery-form-title">📍 Çatdırılma və Əlaqə Məlumatları</h4>
+                    <div class="form-group">
+                        <label for="orderAddressInput">Çatdırılma Ünvanı *</label>
+                        <textarea id="orderAddressInput" class="form-input" rows="2"
+                            placeholder="Bakı ş., Nərimanov r., Təbriz küç. 45, mənzil 12..." autocomplete="street-address" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="orderPhoneInput">Əlaqə Telefonu *</label>
+                            <input type="tel" id="orderPhoneInput" class="form-input" placeholder="+994 50 123 45 67"
+                                autocomplete="tel" inputmode="tel" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="orderPaymentSelect">Ödəniş Üsulu</label>
+                            <select id="orderPaymentSelect" class="form-input">
+                                <option value="Qapıda Nağd">💵 Qapıda Nağd</option>
+                                <option value="Kartla">💳 Qapıda Kartla (Pos-terminal)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="orderNoteInput">Kuryer üçün qeyd (istəyə bağlı)</label>
+                        <input type="text" id="orderNoteInput" class="form-input"
+                            placeholder="Məs: Blok 2, qapı kodu 42, saat 18:00-dan sonra gətirin...">
+                    </div>
                 </div>
 
                 <div class="cart-summary">

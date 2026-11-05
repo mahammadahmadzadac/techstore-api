@@ -36,6 +36,24 @@ const orderSchema = new mongoose.Schema({
         type: String,
         default: 'Gözləyir', // 'Gözləyir', 'Çatdırılır', 'Tamamlandı'
         enum: ['Gözləyir', 'Çatdırılır', 'Tamamlandı']
+    },
+    // 5. Biznes Məntiqi: Çatdırılma ünvanı və əlaqə məlumatları
+    unvan: {
+        type: String,
+        required: true
+    },
+    telefon: {
+        type: String,
+        required: true
+    },
+    kuryerQeydi: {
+        type: String,
+        default: ''
+    },
+    odenisNovu: {
+        type: String,
+        default: 'Qapıda Nağd',
+        enum: ['Qapıda Nağd', 'Kartla']
     }
 }, {
     timestamps: true // Sifarişin dəqiq verilmə vaxtı (createdAt), yenilənmə vaxtı (updatedAt)

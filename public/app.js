@@ -304,6 +304,51 @@ function renderProductsGrid(items) {
             </div>
         `;
 
+        const stok = typeof product.stokSayi === 'number' ? product.stokSayi : 12;
+        let stockHtml = '';
+        let addCartBtnHtml = '';
+
+        if (stok <= 0) {
+            stockHtml = `
+                <div class="stock-status stock-out">
+                    <span>🔴</span>
+                    <span>Anbarda tükənib</span>
+                </div>
+            `;
+            addCartBtnHtml = `
+                <button class="btn-add-cart btn-disabled" disabled onclick="event.stopPropagation()" title="Məhsul anbarda bitib">
+                    <span>🚫</span>
+                    <span>Tükənib</span>
+                </button>
+            `;
+        } else if (stok <= 5) {
+            stockHtml = `
+                <div class="stock-status stock-low">
+                    <span>⚠️</span>
+                    <span>Tələsin! Cəmi ${stok} ədəd qaldı</span>
+                </div>
+            `;
+            addCartBtnHtml = `
+                <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
+                    <span>🛒</span>
+                    <span>Səbətə at</span>
+                </button>
+            `;
+        } else {
+            stockHtml = `
+                <div class="stock-status">
+                    <span>🟢</span>
+                    <span>Stokda ${stok} ədəd var</span>
+                </div>
+            `;
+            addCartBtnHtml = `
+                <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
+                    <span>🛒</span>
+                    <span>Səbətə at</span>
+                </button>
+            `;
+        }
+
         return `
             <article class="product-card" id="product-${product._id}">
                 <div class="card-header">
@@ -332,10 +377,7 @@ function renderProductsGrid(items) {
                         <p class="product-desc">${escapeHtml(product.tesvir || '')}</p>
                     </div>
 
-                    <div class="stock-status">
-                        <span>●</span>
-                        <span>Stokda var • 💬 Rəylərə bax və yaz</span>
-                    </div>
+                    ${stockHtml}
 
                     <div class="card-footer">
                         <div class="price-box">
@@ -343,10 +385,7 @@ function renderProductsGrid(items) {
                             <span class="price-curr">${formatPrice(price)}</span>
                         </div>
 
-                        <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
-                            <span>🛒</span>
-                            <span>Səbətə at</span>
-                        </button>
+                        ${addCartBtnHtml}
                     </div>
                 </div>
             </article>
@@ -440,10 +479,41 @@ function renderProductDetailView(product) {
     document.getElementById('detailOldPrice').textContent = formatPrice(oldPrice);
     document.getElementById('detailMonthlyPrice').textContent = formatPrice(monthly);
 
+    // Stock Status & Badges
+    const stok = typeof product.stokSayi === 'number' ? product.stokSayi : 12;
+    const stockPill = document.getElementById('detailStockPill');
+    if (stockPill) {
+        if (stok <= 0) {
+            stockPill.className = 'stock-pill stock-out';
+            stockPill.textContent = '🔴 Anbarda tükənib (Gözlənilir)';
+        } else if (stok <= 5) {
+            stockPill.className = 'stock-pill stock-low';
+            stockPill.textContent = `⚠️ Tələsin! Stokda cəmi ${stok} ədəd qaldı`;
+        } else {
+            stockPill.className = 'stock-pill';
+            stockPill.textContent = `● Stokda var (${stok} ədəd, 24 saata çatdırılma)`;
+        }
+    }
+
     // Qty & Buttons
+    if (stok <= 0) {
+        state.detailQty = 0;
+    } else if (state.detailQty > stok) {
+        state.detailQty = stok;
+    }
     document.getElementById('detailQtyVal').textContent = state.detailQty;
+
     const addBtn = document.getElementById('detailAddToCartBtn');
-    addBtn.onclick = () => addToCartWithQty(product._id, state.detailQty);
+    if (stok <= 0) {
+        addBtn.disabled = true;
+        addBtn.className = 'btn btn-primary btn-lg detail-buy-btn btn-disabled';
+        addBtn.innerHTML = '<span>🚫 Anbarda Tükənib</span>';
+    } else {
+        addBtn.disabled = false;
+        addBtn.className = 'btn btn-primary btn-lg detail-buy-btn';
+        addBtn.innerHTML = '<span>🛒 Səbətə Əlavə Et</span>';
+        addBtn.onclick = () => addToCartWithQty(product._id, state.detailQty);
+    }
 
     const wishBtn = document.getElementById('detailWishlistBtn');
     wishBtn.innerHTML = `<span>${isWishlisted ? '❤️' : '🤍'}</span>`;
@@ -461,16 +531,40 @@ function renderProductDetailView(product) {
 }
 
 function changeDetailQty(delta) {
-    state.detailQty = Math.max(1, state.detailQty + delta);
+    const product = state.products.find(p => p._id === state.activeProductId);
+    const maxStock = product && typeof product.stokSayi === 'number' ? product.stokSayi : 99;
+    if (maxStock <= 0) {
+        state.detailQty = 0;
+    } else {
+        state.detailQty = Math.max(1, Math.min(maxStock, state.detailQty + delta));
+    }
     const el = document.getElementById('detailQtyVal');
     if (el) el.textContent = state.detailQty;
 }
 
 function addToCartWithQty(productId, qty) {
+    if (qty <= 0) {
+        showToast('Zəhmət olmasa ən azı 1 ədəd seçin!');
+        return;
+    }
+
     const product = state.products.find(p => p._id === productId);
     if (!product) return;
 
+    const maxStock = typeof product.stokSayi === 'number' ? product.stokSayi : 12;
+    if (maxStock <= 0) {
+        showToast('Təəssüf ki, bu məhsul anbarda tükənib! ❌');
+        return;
+    }
+
     const existingIndex = state.cart.findIndex(item => item.id === productId);
+    const currentQtyInCart = existingIndex > -1 ? state.cart[existingIndex].say : 0;
+
+    if (currentQtyInCart + qty > maxStock) {
+        showToast(`Anbarda cəmi ${maxStock} ədəd var! Siz artıq ${currentQtyInCart} ədəd səbətə atmısınız.`);
+        return;
+    }
+
     if (existingIndex > -1) {
         state.cart[existingIndex].say += qty;
     } else {
@@ -656,6 +750,7 @@ function renderCartModal() {
     const totalEl = document.getElementById('cartTotalPrice');
     const countEl = document.getElementById('cartModalCount');
     const checkoutBtn = document.getElementById('checkoutBtn');
+    const deliverySec = document.getElementById('checkoutDeliverySection');
 
     if (!list) return;
 
@@ -670,10 +765,12 @@ function renderCartModal() {
         if (totalEl) totalEl.textContent = '0 ₼';
         if (countEl) countEl.textContent = '0 məhsul';
         if (checkoutBtn) checkoutBtn.disabled = true;
+        if (deliverySec) deliverySec.style.display = 'none';
         return;
     }
 
     if (checkoutBtn) checkoutBtn.disabled = false;
+    if (deliverySec) deliverySec.style.display = 'block';
 
     const totalCount = state.cart.reduce((sum, item) => sum + item.say, 0);
     const totalPrice = state.cart.reduce((sum, item) => sum + (item.qiymet * item.say), 0);
@@ -701,6 +798,15 @@ function renderCartModal() {
 function changeCartQty(id, delta) {
     const item = state.cart.find(i => i.id === id);
     if (!item) return;
+
+    if (delta > 0) {
+        const prod = state.products.find(p => p._id === id);
+        const maxStock = prod && typeof prod.stokSayi === 'number' ? prod.stokSayi : 99;
+        if (item.say + delta > maxStock) {
+            showToast(`Anbarda cəmi ${maxStock} ədəd var!`);
+            return;
+        }
+    }
 
     item.say += delta;
     if (item.say <= 0) {
@@ -734,11 +840,38 @@ async function handleCheckout() {
         return;
     }
 
+    // Biznes məntiqi: Çatdırılma və Əlaqə məlumatlarını yoxla
+    const addressInput = document.getElementById('orderAddressInput');
+    const phoneInput = document.getElementById('orderPhoneInput');
+    const paymentSelect = document.getElementById('orderPaymentSelect');
+    const noteInput = document.getElementById('orderNoteInput');
+
+    const unvan = addressInput ? addressInput.value.trim() : '';
+    const telefon = phoneInput ? phoneInput.value.trim() : '';
+    const odenisNovu = paymentSelect ? paymentSelect.value : 'Qapıda Nağd';
+    const kuryerQeydi = noteInput ? noteInput.value.trim() : '';
+
+    if (!unvan) {
+        showToast('Zəhmət olmasa, çatdırılma ünvanını qeyd edin! 📍');
+        if (addressInput) addressInput.focus();
+        return;
+    }
+
+    if (!telefon) {
+        showToast('Zəhmət olmasa, əlaqə nömrənizi daxil edin! 📱');
+        if (phoneInput) phoneInput.focus();
+        return;
+    }
+
     const checkoutBtn = document.getElementById('checkoutBtn');
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = 'Sifariş qəbul olunur...';
 
     const payload = {
+        unvan,
+        telefon,
+        odenisNovu,
+        kuryerQeydi,
         mehsullar: state.cart.map(item => ({
             product: item.id,
             say: item.say,
@@ -759,10 +892,19 @@ async function handleCheckout() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Sifariş qəbul olunmadı');
 
+        // Uğurlu sifarişdən sonra formu və səbəti təmizlə
+        if (addressInput) addressInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (noteInput) noteInput.value = '';
+
         state.cart = [];
         saveCart();
         updateCartBadge();
         document.getElementById('cartModal').close();
+
+        // Anbar stoklarını dərhal təzələ
+        fetchProducts();
+
         showToast('Təbriklər! Sifarişiniz uğurla qəbul edildi! 🎉📦');
     } catch (err) {
         showToast(`Xəta: ${err.message}`);
@@ -918,6 +1060,11 @@ async function fetchMyOrders() {
                 <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">
                     Tarix: ${new Date(o.createdAt).toLocaleString('az-AZ')}
                 </div>
+                <div class="order-delivery-info">
+                    <div><strong>📍 Çatdırılma:</strong> ${escapeHtml(o.unvan || 'Göstərilməyib')}</div>
+                    <div><strong>📱 Əlaqə:</strong> ${escapeHtml(o.telefon || '-')} • <strong>Ödəniş:</strong> ${escapeHtml(o.odenisNovu || 'Qapıda Nağd')}</div>
+                    ${o.kuryerQeydi ? `<div><strong>📝 Kuryer qeydi:</strong> ${escapeHtml(o.kuryerQeydi)}</div>` : ''}
+                </div>
                 <div style="font-size:0.9rem; margin-bottom:0.5rem;">
                     ${(o.mehsullar || []).map(m => `
                         <div>• ${escapeHtml(m.product?.basliq || 'Məhsul')} x ${m.say} (${formatPrice(m.qiymet)})</div>
@@ -965,6 +1112,14 @@ async function fetchAdminOrders() {
                         <option value="Çatdırılır" ${o.status === 'Çatdırılır' ? 'selected' : ''}>🚚 Çatdırılır</option>
                         <option value="Tamamlandı" ${o.status === 'Tamamlandı' ? 'selected' : ''}>✅ Tamamlandı</option>
                     </select>
+                </div>
+                <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">
+                    Tarix: ${new Date(o.createdAt).toLocaleString('az-AZ')}
+                </div>
+                <div class="order-delivery-info">
+                    <div><strong>📍 Çatdırılma:</strong> ${escapeHtml(o.unvan || 'Göstərilməyib')}</div>
+                    <div><strong>📱 Əlaqə:</strong> ${escapeHtml(o.telefon || '-')} • <strong>Ödəniş:</strong> ${escapeHtml(o.odenisNovu || 'Qapıda Nağd')}</div>
+                    ${o.kuryerQeydi ? `<div><strong>📝 Kuryer qeydi:</strong> ${escapeHtml(o.kuryerQeydi)}</div>` : ''}
                 </div>
                 <div style="font-size:0.85rem; margin-bottom:0.4rem;">
                     ${(o.mehsullar || []).map(m => `

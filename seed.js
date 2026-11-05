@@ -1,5 +1,7 @@
 import dns from 'dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+try {
+    dns.setServers(['1.1.1.1', '8.8.8.8', '1.0.0.1', '8.8.4.4']);
+} catch (_) {}
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -13,6 +15,7 @@ export const initialProducts = [
         qiymet: 3199,
         kategoriya: "Smartfonlar",
         sekilUrl: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 8,
         satisSayi: 85,
         reyting: 5,
         reySayi: 142,
@@ -27,6 +30,7 @@ export const initialProducts = [
         qiymet: 2899,
         kategoriya: "Smartfonlar",
         sekilUrl: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 12,
         satisSayi: 64,
         reyting: 5,
         reySayi: 98,
@@ -41,6 +45,7 @@ export const initialProducts = [
         qiymet: 4899,
         kategoriya: "Noutbuklar & PC",
         sekilUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 5,
         satisSayi: 42,
         reyting: 5,
         reySayi: 67,
@@ -54,6 +59,7 @@ export const initialProducts = [
         qiymet: 3750,
         kategoriya: "Noutbuklar & PC",
         sekilUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 4,
         satisSayi: 29,
         reyting: 5,
         reySayi: 35,
@@ -67,6 +73,7 @@ export const initialProducts = [
         qiymet: 749,
         kategoriya: "Qulaqlıqlar & Audio",
         sekilUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 15,
         satisSayi: 130,
         reyting: 5,
         reySayi: 210,
@@ -81,6 +88,7 @@ export const initialProducts = [
         qiymet: 549,
         kategoriya: "Qulaqlıqlar & Audio",
         sekilUrl: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 25,
         satisSayi: 220,
         reyting: 5,
         reySayi: 340,
@@ -94,6 +102,7 @@ export const initialProducts = [
         qiymet: 1799,
         kategoriya: "Smart Saatlar",
         sekilUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 6,
         satisSayi: 38,
         reyting: 5,
         reySayi: 56,
@@ -107,6 +116,7 @@ export const initialProducts = [
         qiymet: 599,
         kategoriya: "Smart Saatlar",
         sekilUrl: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 10,
         satisSayi: 70,
         reyting: 5,
         reySayi: 82,
@@ -120,6 +130,7 @@ export const initialProducts = [
         qiymet: 2299,
         kategoriya: "Planşetlər & Digər",
         sekilUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 7,
         satisSayi: 31,
         reyting: 5,
         reySayi: 44,
@@ -133,6 +144,7 @@ export const initialProducts = [
         qiymet: 1199,
         kategoriya: "Oyun & Konsollar",
         sekilUrl: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80",
+        stokSayi: 9,
         satisSayi: 310,
         reyting: 5,
         reySayi: 412,

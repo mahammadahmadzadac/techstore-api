@@ -8,9 +8,11 @@ const productSchema = new mongoose.Schema({
     kategoriya: { type: String, required: true },
     // seklin linki
     sekilUrl: { type: String, required: false },
+    // 1. Biznes Məntiqi: Anbardakı real stok sayı
+    stokSayi: { type: Number, default: 12, min: 0 },
     satisSayi: { type: Number, default: 0 },
     //reyting
-    reyting: { type: Number, default: 0, min: 0, max: 5 }, // 1-5 arası
+    reyting: { type: Number, default: 5, min: 0, max: 5 }, // 1-5 arası
     reySayi: { type: Number, default: 0 }, // rey cəmində
     reyler: [{
         ad: { type: String, required: true },

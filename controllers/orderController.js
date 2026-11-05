@@ -1,10 +1,10 @@
 import Order from "../models/orders.js";
 import Product from "../models/Product.js";
 
-// 1. Yeni Sifariş yaratmaq (Müştəri üçün)
+// 1. Yeni Sifariş yaratmaq (Müştəri üçün - Biznes Məntiqi ilə)
 export const createOrder = async (req, res) => {
     try {
-        const { mehsullar } = req.body;
+        const { mehsullar, unvan, telefon, kuryerQeydi, odenisNovu } = req.body;
 
         // Əgər səbət boşdursa, sifariş vermək olmaz
         if (!mehsullar || !Array.isArray(mehsullar) || mehsullar.length === 0) {
@@ -13,10 +13,23 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        // Təhlükəsizlik: Qiyməti Front-end-ə etibar etmirik!
-        // Hər bir məhsulun qiymətini birbaşa MongoDB-dən götürüb ümumi məbləği hesablayırıq
+        // Biznes Məntiqi: Çatdırılma ünvanı və telefon nömrəsi mütləq olmalıdır
+        if (!unvan || !unvan.trim()) {
+            return res.status(400).json({
+                message: "Zəhmət olmasa çatdırılma ünvanını daxil edin!"
+            });
+        }
+        if (!telefon || !telefon.trim()) {
+            return res.status(400).json({
+                message: "Zəhmət olmasa əlaqə telefon nömrəsini daxil edin!"
+            });
+        }
+
+        // Təhlükəsizlik və Stok Yoxlanışı:
+        // Hər bir məhsulun anbardakı real stokunu yoxlayırıq və qiymətini bazadan götürürük
         let umumiHesablanmisQiymet = 0;
         const tesdiqlenmisMehsullar = [];
+        const yenilenecekMehsullar = [];
 
         for (const item of mehsullar) {
             const mehsulBazada = await Product.findById(item.product);
@@ -27,8 +40,16 @@ export const createOrder = async (req, res) => {
             }
 
             const mehsulSayi = Number(item.say) > 0 ? Number(item.say) : 1;
-            const mehsulQiymet = Number(mehsulBazada.qiymet);
+            const movcudStok = mehsulBazada.stokSayi !== undefined ? mehsulBazada.stokSayi : 10;
 
+            // 1. Biznes Məntiqi: Stok Yoxlanışı
+            if (movcudStok < mehsulSayi) {
+                return res.status(400).json({
+                    message: `"${mehsulBazada.basliq}" üçün anbarda kifayət qədər stok yoxdur! Qalan stok: ${movcudStok} ədəd.`
+                });
+            }
+
+            const mehsulQiymet = Number(mehsulBazada.qiymet);
             umumiHesablanmisQiymet += mehsulQiymet * mehsulSayi;
 
             tesdiqlenmisMehsullar.push({
@@ -36,18 +57,35 @@ export const createOrder = async (req, res) => {
                 say: mehsulSayi,
                 qiymet: mehsulQiymet
             });
+
+            // Anbardan çıxarılacaq siyahıya əlavə edirik
+            yenilenecekMehsullar.push({
+                doc: mehsulBazada,
+                cixilacaqSay: mehsulSayi
+            });
+        }
+
+        // Bütün yoxlamalar uğurludursa, anbardakı stoku azaldırıq və satış sayını artırırıq
+        for (const { doc, cixilacaqSay } of yenilenecekMehsullar) {
+            doc.stokSayi = Math.max(0, (doc.stokSayi !== undefined ? doc.stokSayi : 10) - cixilacaqSay);
+            doc.satisSayi = (doc.satisSayi || 0) + cixilacaqSay;
+            await doc.save();
         }
 
         // Yeni sifariş obyekti yaradırıq (req.user.id biletindən avtomatik gəlir!)
         const order = new Order({
             user: req.user.id,
             mehsullar: tesdiqlenmisMehsullar,
-            umumiQiymet: umumiHesablanmisQiymet
+            umumiQiymet: umumiHesablanmisQiymet,
+            unvan: unvan.trim(),
+            telefon: telefon.trim(),
+            kuryerQeydi: kuryerQeydi ? kuryerQeydi.trim() : '',
+            odenisNovu: odenisNovu || 'Qapıda Nağd'
         });
 
         const yeniSfaris = await order.save();
         res.status(201).json({
-            message: "Sifarişiniz uğurla qəbul edildi! 🎉",
+            message: "Sifarişiniz uğurla qəbul edildi! Kuryer tezliklə sizinlə əlaqə saxlayacaq. 🎉📦",
             sifaris: yeniSfaris
         });
 
@@ -59,12 +97,12 @@ export const createOrder = async (req, res) => {
 // 2. Müştərinin öz sifarişlərini görməsi
 export const getMyOrders = async (req, res) => {
     try {
-        // Yalnız bu biletin sahibinə aid sifarişləri tapırıq və 
-        // məhsulun adını/qiymətini qoşuruq (.populate)
         const sifarisler = await Order.find({
             user: req.user.id
         })
-            .populate('mehsullar.product', 'basliq qiymet');
+            .populate('mehsullar.product', 'basliq qiymet sekilUrl')
+            .sort({ createdAt: -1 });
+
         res.status(200).json(sifarisler);
     } catch (error) {
         res.status(500).json({
@@ -76,10 +114,10 @@ export const getMyOrders = async (req, res) => {
 // 3. Bütün sifarişləri görmək (Yalnız Admin üçün)
 export const getAllOrders = async (req, res) => {
     try {
-        // Həm müştərinin adını/emailini, həm də məhsulun detallarını gətiririk
         const butunSifarisler = await Order.find()
             .populate('user', 'ad email')
-            .populate('mehsullar.product', 'basliq qiymet');
+            .populate('mehsullar.product', 'basliq qiymet sekilUrl')
+            .sort({ createdAt: -1 });
 
         res.status(200).json(butunSifarisler);
 
