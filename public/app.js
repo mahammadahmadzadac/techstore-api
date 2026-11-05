@@ -16,14 +16,12 @@ let state = {
     theme: localStorage.getItem('theme') || 'dark',
     activeProductId: null,
     detailQty: 1,
-    reviewRating: 5,
-    accent: localStorage.getItem('accent') || 'blue'
+    reviewRating: 5
 };
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
-    initAccent();
     initApp();
     setupModalsLightDismiss();
 });
@@ -41,30 +39,6 @@ function initTheme() {
     }
 }
 
-function initAccent() {
-    const saved = localStorage.getItem('accent') || 'blue';
-    setAccentTheme(saved, false);
-}
-
-function setAccentTheme(accentName, notify = true) {
-    state.accent = accentName;
-    document.documentElement.setAttribute('data-accent', accentName);
-    localStorage.setItem('accent', accentName);
-
-    document.querySelectorAll('.accent-dot').forEach(dot => {
-        dot.classList.toggle('active', dot.classList.contains(`dot-${accentName}`));
-    });
-
-    if (notify) {
-        const labels = {
-            blue: 'Cyber Blue ⚡',
-            emerald: 'Emerald Tech 🟢',
-            amber: 'Sunset Gold 🟠'
-        };
-        showToast(`Rəng mövzusu: ${labels[accentName] || accentName}`);
-    }
-}
-
 function toggleTheme() {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -73,7 +47,6 @@ function toggleTheme() {
     if (icon) {
         icon.textContent = state.theme === 'dark' ? '🌙' : '☀️';
     }
-    showToast(state.theme === 'dark' ? 'Qaranlıq rejim aktiv edildi 🌙' : 'İşıqlı rejim aktiv edildi ☀️');
 }
 
 function initApp() {
@@ -338,41 +311,38 @@ function renderProductsGrid(items) {
 
         if (stok <= 0) {
             stockHtml = `
-                <div class="stock-status stock-out">
-                    <span>🔴</span>
+                <div class="stock-status out">
+                    <span class="status-dot red"></span>
                     <span>Anbarda tükənib</span>
                 </div>
             `;
             addCartBtnHtml = `
-                <button class="btn-add-cart btn-disabled" disabled onclick="event.stopPropagation()" title="Məhsul anbarda bitib">
-                    <span>🚫</span>
-                    <span>Tükənib</span>
+                <button class="btn-add-cart btn-disabled" disabled onclick="event.stopPropagation()">
+                    Tükənib
                 </button>
             `;
         } else if (stok <= 5) {
             stockHtml = `
-                <div class="stock-status stock-low">
-                    <span>⚠️</span>
-                    <span>Tələsin! Cəmi ${stok} ədəd qaldı</span>
+                <div class="stock-status low">
+                    <span class="status-dot amber"></span>
+                    <span>Son ${stok} ədəd</span>
                 </div>
             `;
             addCartBtnHtml = `
                 <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
-                    <span>🛒</span>
-                    <span>Səbətə at</span>
+                    Səbətə at
                 </button>
             `;
         } else {
             stockHtml = `
-                <div class="stock-status">
-                    <span>🟢</span>
-                    <span>Stokda ${stok} ədəd var</span>
+                <div class="stock-status in">
+                    <span class="status-dot green"></span>
+                    <span>Stokda var</span>
                 </div>
             `;
             addCartBtnHtml = `
                 <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product._id}')">
-                    <span>🛒</span>
-                    <span>Səbətə at</span>
+                    Səbətə at
                 </button>
             `;
         }
@@ -380,7 +350,7 @@ function renderProductsGrid(items) {
         return `
             <article class="product-card" id="product-${product._id}">
                 <div class="card-header">
-                    <span class="card-badge badge-trend">🔥 Orijinal</span>
+                    <span class="card-badge badge-clean">Orijinal • 2 İl Zəmanət</span>
                     <button class="btn-wishlist ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${product._id}')" title="İstək siyahısına əlavə et">
                         ${isWishlisted ? '❤️' : '🤍'}
                     </button>
@@ -392,9 +362,8 @@ function renderProductsGrid(items) {
                     <div class="meta-row">
                         <span class="cat-label">${escapeHtml(cat)}</span>
                         <div class="rating-stars card-clickable" onclick="openProductDetail('${product._id}')" title="Rəylərə bax">
-                            <span>⭐</span>
-                            <span>${rating.toFixed(1)}</span>
-                            <span class="reviews-count-pill">(${count} rəy)</span>
+                            <span>⭐ ${rating.toFixed(1)}</span>
+                            <span class="reviews-count-pill">(${count})</span>
                         </div>
                     </div>
 
