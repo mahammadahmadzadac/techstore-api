@@ -13,7 +13,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6.0">
+    <link rel="stylesheet" href="style.css?v=7.0">
 </head>
 
 <body>
@@ -460,33 +460,72 @@
                 <button class="btn-close" onclick="document.getElementById('authModal').close()">✕</button>
             </div>
 
-            <div class="auth-tabs">
-                <button id="loginTabBtn" class="tab-btn active" onclick="switchAuthTab('login')">Daxil Ol</button>
-                <button id="registerTabBtn" class="tab-btn" onclick="switchAuthTab('register')">Qeydiyyat</button>
+            <div id="authStandardFields">
+                <div class="auth-tabs">
+                    <button id="loginTabBtn" class="tab-btn active" onclick="switchAuthTab('login')">Daxil Ol</button>
+                    <button id="registerTabBtn" class="tab-btn" onclick="switchAuthTab('register')">Qeydiyyat</button>
+                </div>
+
+                <form id="authForm" class="modal-body" onsubmit="handleAuthSubmit(event)">
+                    <div id="nameFieldGroup" class="form-group" style="display: none;">
+                        <label for="authName">Ad və Soyadınız</label>
+                        <input type="text" id="authName" class="form-input" placeholder="Məs: Məhəmməd Əhmədzadə">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="authEmail">E-mail ünvanı</label>
+                        <input type="email" id="authEmail" class="form-input" placeholder="ad@domain.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="authPassword">Şifrə</label>
+                        <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required>
+                    </div>
+
+                    <div id="authAlert" class="alert" style="display: none;"></div>
+
+                    <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-block btn-lg">
+                        <span>Daxil Ol</span>
+                    </button>
+                </form>
             </div>
 
-            <form id="authForm" class="modal-body" onsubmit="handleAuthSubmit(event)">
-                <div id="nameFieldGroup" class="form-group" style="display: none;">
-                    <label for="authName">Ad və Soyadınız</label>
-                    <input type="text" id="authName" class="form-input" placeholder="Məs: Məhəmməd Əhmədzadə">
+            <!-- OTP Verification Step -->
+            <div id="authOtpFields" class="modal-body" style="display: none; text-align: center; padding: 1.5rem 1rem;">
+                <div style="font-size: 2.8rem; margin-bottom: 0.4rem;">📩</div>
+                <h4 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.35rem;">Email Təsdiqi</h4>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
+                    Təsdiq kodu <strong id="otpEmailTarget" style="color: var(--primary);"></strong> ünvanına göndərildi.<br>
+                    Zəhmət olmasa 6 rəqəmli OTP kodu daxil edin:
+                </p>
+
+                <div id="otpDevBadge" class="alert alert-info" style="display:none; margin-bottom:1rem; font-size:0.85rem;"></div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <input type="text" id="authOtpInput" maxlength="6" class="form-input" 
+                        placeholder="••••••" autocomplete="one-time-code"
+                        style="text-align: center; font-size: 1.8rem; letter-spacing: 0.4rem; font-weight: 800; max-width: 240px; margin: 0 auto;">
                 </div>
 
-                <div class="form-group">
-                    <label for="authEmail">E-mail ünvanı</label>
-                    <input type="email" id="authEmail" class="form-input" placeholder="ad@domain.com" required>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    ⏱️ Kodun etibarlılıq vaxtı: <strong id="otpTimerDisplay" style="color: var(--text);">05:00</strong>
                 </div>
 
-                <div class="form-group">
-                    <label for="authPassword">Şifrə</label>
-                    <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required>
-                </div>
+                <div id="otpAlert" class="alert" style="display: none; margin-bottom: 1rem;"></div>
 
-                <div id="authAlert" class="alert" style="display: none;"></div>
-
-                <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-block btn-lg">
-                    <span>Daxil Ol</span>
+                <button type="button" id="verifyOtpBtn" class="btn btn-primary btn-block btn-lg" onclick="handleVerifyOtpSubmit()" style="margin-bottom: 0.75rem;">
+                    <span>Təsdiqlə və Daxil Ol</span>
                 </button>
-            </form>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; font-size: 0.82rem;">
+                    <button type="button" id="resendOtpBtn" class="btn-text-link" onclick="handleResendOtp()" style="background: none; border: none; color: var(--primary); cursor: pointer; text-decoration: underline;">
+                        Kodu yenidən göndər
+                    </button>
+                    <button type="button" class="btn-text-link" onclick="backToAuthForm()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                        ← Email dəyiş
+                    </button>
+                </div>
+            </div>
         </div>
     </dialog>
 
@@ -762,7 +801,7 @@
         </div>
     </footer>
 
-    <script src="app.js?v=6.0"></script>
+    <script src="app.js?v=7.0"></script>
 </body>
 
 </html>

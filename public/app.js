@@ -61,7 +61,10 @@ function setupEventListeners() {
     // Nav Buttons
     const openAuthBtn = document.getElementById('openAuthBtn');
     if (openAuthBtn) {
-        openAuthBtn.addEventListener('click', () => openModal('authModal'));
+        openAuthBtn.addEventListener('click', () => {
+            backToAuthForm();
+            openModal('authModal');
+        });
     }
 
     const cartBtn = document.getElementById('cartBtn');
@@ -1026,8 +1029,11 @@ function openMyOrdersFromReceipt() {
     openModal('myOrdersModal');
 }
 
-// ==================== AUTHENTICATION ====================
+// ==================== AUTHENTICATION & EMAIL OTP ====================
+let otpTimerInterval = null;
+
 function switchAuthTab(mode) {
+    backToAuthForm();
     state.authMode = mode;
     const isLogin = mode === 'login';
 
@@ -1037,6 +1043,163 @@ function switchAuthTab(mode) {
     document.getElementById('authModalTitle').textContent = isLogin ? 'Hesaba Giriş' : 'Yeni Qeydiyyat';
     document.getElementById('authSubmitBtn').innerHTML = `<span>${isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Keç'}</span>`;
     document.getElementById('authAlert').style.display = 'none';
+}
+
+function showOtpScreen(email, devOtp) {
+    state.pendingOtpEmail = email;
+    const stdFields = document.getElementById('authStandardFields');
+    const otpFields = document.getElementById('authOtpFields');
+    const targetEl = document.getElementById('otpEmailTarget');
+    const devBadge = document.getElementById('otpDevBadge');
+    const otpInput = document.getElementById('authOtpInput');
+    const otpAlert = document.getElementById('otpAlert');
+
+    if (stdFields) stdFields.style.display = 'none';
+    if (otpFields) otpFields.style.display = 'block';
+    if (targetEl) targetEl.textContent = email;
+    if (otpAlert) otpAlert.style.display = 'none';
+    if (otpInput) {
+        otpInput.value = '';
+        setTimeout(() => otpInput.focus(), 150);
+    }
+
+    if (devBadge) {
+        if (devOtp) {
+            devBadge.innerHTML = `💡 <strong>Test Rejimi:</strong> OTP Kodunuz: <span style="font-size:1.1rem; font-weight:800; letter-spacing:2px; color:var(--primary);">${devOtp}</span>`;
+            devBadge.style.display = 'block';
+        } else {
+            devBadge.style.display = 'none';
+        }
+    }
+
+    startOtpCountdown(300); // 5 dəqiqə
+}
+
+function startOtpCountdown(seconds) {
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+    const timerEl = document.getElementById('otpTimerDisplay');
+    const resendBtn = document.getElementById('resendOtpBtn');
+    if (resendBtn) {
+        resendBtn.disabled = true;
+        resendBtn.style.opacity = '0.5';
+        resendBtn.style.pointerEvents = 'none';
+    }
+
+    let left = seconds;
+    const updateDisplay = () => {
+        const m = Math.floor(left / 60).toString().padStart(2, '0');
+        const s = (left % 60).toString().padStart(2, '0');
+        if (timerEl) timerEl.textContent = `${m}:${s}`;
+        if (left <= 0) {
+            clearInterval(otpTimerInterval);
+            if (timerEl) timerEl.textContent = 'Vaxt bitdi';
+            if (resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.style.opacity = '1';
+                resendBtn.style.pointerEvents = 'auto';
+            }
+        }
+        if (seconds - left >= 30 && resendBtn && resendBtn.disabled) {
+            resendBtn.disabled = false;
+            resendBtn.style.opacity = '1';
+            resendBtn.style.pointerEvents = 'auto';
+        }
+        left--;
+    };
+
+    updateDisplay();
+    otpTimerInterval = setInterval(updateDisplay, 1000);
+}
+
+function backToAuthForm() {
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+    const stdFields = document.getElementById('authStandardFields');
+    const otpFields = document.getElementById('authOtpFields');
+    if (stdFields) stdFields.style.display = 'block';
+    if (otpFields) otpFields.style.display = 'none';
+}
+
+async function handleVerifyOtpSubmit() {
+    const otpInput = document.getElementById('authOtpInput');
+    const otpAlert = document.getElementById('otpAlert');
+    const verifyBtn = document.getElementById('verifyOtpBtn');
+    if (!otpInput) return;
+
+    const otp = otpInput.value.trim();
+    if (!otp || otp.length < 4) {
+        if (otpAlert) {
+            otpAlert.textContent = 'Zəhmət olmasa 6 rəqəmli təsdiq kodunu daxil edin!';
+            otpAlert.className = 'alert alert-danger';
+            otpAlert.style.display = 'block';
+        }
+        return;
+    }
+
+    try {
+        if (verifyBtn) {
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span>Yoxlanılır...</span>';
+        }
+        if (otpAlert) otpAlert.style.display = 'none';
+
+        const res = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: state.pendingOtpEmail, otp })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.err || 'Təsdiq kodu yanlışdır');
+
+        state.token = data.token;
+        state.user = data.user;
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        document.getElementById('authModal').close();
+        backToAuthForm();
+        updateNavUser();
+        showToast(data.message || `Xoş gəldiniz, ${data.user.ad || 'İstifadəçi'}! 🎉`);
+    } catch (err) {
+        if (otpAlert) {
+            otpAlert.textContent = err.message;
+            otpAlert.className = 'alert alert-danger';
+            otpAlert.style.display = 'block';
+        }
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<span>Təsdiqlə və Daxil Ol</span>';
+        }
+    }
+}
+
+async function handleResendOtp() {
+    const otpAlert = document.getElementById('otpAlert');
+    const devBadge = document.getElementById('otpDevBadge');
+    try {
+        const res = await fetch('/api/auth/resend-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: state.pendingOtpEmail })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Kod göndərilmədi');
+
+        startOtpCountdown(300);
+        if (data.devOtp && devBadge) {
+            devBadge.innerHTML = `💡 <strong>Test Rejimi:</strong> Yeni OTP Kodunuz: <span style="font-size:1.1rem; font-weight:800; letter-spacing:2px; color:var(--primary);">${data.devOtp}</span>`;
+            devBadge.style.display = 'block';
+        }
+        showToast(data.message || 'Yeni kod göndərildi! 📩');
+    } catch (err) {
+        if (otpAlert) {
+            otpAlert.textContent = err.message;
+            otpAlert.className = 'alert alert-danger';
+            otpAlert.style.display = 'block';
+        }
+    }
 }
 
 async function handleAuthSubmit(e) {
@@ -1060,6 +1223,14 @@ async function handleAuthSubmit(e) {
         });
 
         const data = await res.json();
+
+        // 1. OTP Tələb olunursa (Qeydiyyat zamanı və ya təsdiqlənməmiş hesabın girişində)
+        if (data.requiresOtp) {
+            showOtpScreen(data.email || email, data.devOtp);
+            showToast(data.message || 'Təsdiq kodu emailinizə göndərildi! 📩');
+            return;
+        }
+
         if (!res.ok) throw new Error(data.message || data.err || 'Xəta baş verdi');
 
         if (isLogin) {
@@ -1113,7 +1284,7 @@ function updateNavUser() {
         if (adminActionGroup) adminActionGroup.style.display = isAdmin ? 'inline-flex' : 'none';
     } else {
         area.innerHTML = `
-            <button id="openAuthBtn" class="btn btn-primary" onclick="openModal('authModal')">
+            <button id="openAuthBtn" class="btn btn-primary" onclick="backToAuthForm(); openModal('authModal')">
                 <span class="icon">👤</span>
                 <span class="btn-text">Daxil ol</span>
             </button>

@@ -6,7 +6,12 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
 
     //Adam sadecə alıcıdır yoxsa admindir?
-    role: { type: String, default: "user" }
+    role: { type: String, default: "user" },
+
+    // Email Təsdiqi və OTP (Biznes və Təhlükəsizlik Məntiqi)
+    isVerified: { type: Boolean, default: false },
+    otpCode: { type: String },
+    otpExpires: { type: Date }
 }, { timestamps: true }); // timestamps data-nın nə vaxt yaradılıb və yenilənməsini bildirir
 
 
