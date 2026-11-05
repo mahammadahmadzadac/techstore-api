@@ -1375,6 +1375,11 @@ body {
     color: var(--success);
 }
 
+.status-Ləğv-edildi, [class*="status-Ləğv"] {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
 /* ==================== 10. TOASTS ==================== */
 .toast-container {
     position: fixed;

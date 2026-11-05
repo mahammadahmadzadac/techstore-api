@@ -130,17 +130,74 @@ export const getAllOrders = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const sifaris = await Order.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        );
+        const sifaris = await Order.findById(req.params.id);
 
         if (!sifaris) {
             return res.status(404).json({ message: "Sifariş tapılmadı!" });
         }
 
+        const evvelkiStatus = sifaris.status;
+        sifaris.status = status;
+        await sifaris.save();
+
+        // Əgər admin sifarişi "Ləğv edildi" edirsə və əvvəl ləğv edilməmişdisə, stoku geri qaytarırıq
+        if (status === 'Ləğv edildi' && evvelkiStatus !== 'Ləğv edildi') {
+            for (const item of sifaris.mehsullar) {
+                const productDoc = await Product.findById(item.product);
+                if (productDoc) {
+                    productDoc.stokSayi = (productDoc.stokSayi || 0) + item.say;
+                    productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - item.say);
+                    await productDoc.save();
+                }
+            }
+        }
+
         res.status(200).json({ message: "Sifariş statusu yeniləndi! ✅", sifaris });
+    } catch (error) {
+        res.status(500).json({ message: "Xəta baş verdi", xeta: error.message });
+    }
+};
+
+// 5. Sifarişi Ləğv Etmək (Müştərinin özü üçün - Stokun Avtomatik Bərpası ilə)
+export const cancelOrder = async (req, res) => {
+    try {
+        const sifaris = await Order.findById(req.params.id);
+        if (!sifaris) {
+            return res.status(404).json({ message: "Sifariş tapılmadı!" });
+        }
+
+        // Təhlükəsizlik: Yalnız bu sifarişi verən müştəri və ya Admin ləğv edə bilər
+        if (sifaris.user.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Bu sifarişi ləğv etmək hüququnuz yoxdur!" });
+        }
+
+        // Biznes Qaydası: Əgər sifariş artıq kuryerdədirsə ("Çatdırılır") və ya "Tamamlandı"dırsa, ləğv edilə bilməz
+        if (sifaris.status === 'Ləğv edildi') {
+            return res.status(400).json({ message: "Bu sifariş artıq ləğv edilib." });
+        }
+        if (sifaris.status !== 'Gözləyir') {
+            return res.status(400).json({
+                message: `Bu sifariş artıq "${sifaris.status}" mərhələsindədir və ləğv edilə bilməz!`
+            });
+        }
+
+        sifaris.status = 'Ləğv edildi';
+        await sifaris.save();
+
+        // Biznes Məntiqi: Məhsulları anbara (stoka) geri qaytarırıq
+        for (const item of sifaris.mehsullar) {
+            const productDoc = await Product.findById(item.product);
+            if (productDoc) {
+                productDoc.stokSayi = (productDoc.stokSayi || 0) + item.say;
+                productDoc.satisSayi = Math.max(0, (productDoc.satisSayi || 0) - item.say);
+                await productDoc.save();
+            }
+        }
+
+        res.status(200).json({
+            message: "Sifarişiniz ləğv edildi və məhsullar stoka geri qaytarıldı! 🔄",
+            sifaris
+        });
     } catch (error) {
         res.status(500).json({ message: "Xəta baş verdi", xeta: error.message });
     }

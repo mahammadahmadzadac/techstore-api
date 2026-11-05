@@ -1055,7 +1055,7 @@ async function fetchMyOrders() {
             <div class="order-card">
                 <div class="order-header-row">
                     <span class="order-id-badge">Sifariş #${o._id.slice(-6).toUpperCase()}</span>
-                    <span class="status-pill status-${o.status}">${o.status}</span>
+                    <span class="status-pill status-${(o.status || '').replace(/\s+/g, '-')}">${o.status}</span>
                 </div>
                 <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">
                     Tarix: ${new Date(o.createdAt).toLocaleString('az-AZ')}
@@ -1070,13 +1070,44 @@ async function fetchMyOrders() {
                         <div>• ${escapeHtml(m.product?.basliq || 'Məhsul')} x ${m.say} (${formatPrice(m.qiymet)})</div>
                     `).join('')}
                 </div>
-                <div style="text-align:right; font-weight:800; font-size:1.05rem; color:var(--primary);">
-                    Yekun: ${formatPrice(o.umumiQiymet)}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; padding-top:0.6rem; border-top:1px dashed var(--border);">
+                    ${o.status === 'Gözləyir' ? `
+                        <button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:rgba(239, 68, 68, 0.4); padding:0.25rem 0.6rem; font-size:0.8rem;" onclick="cancelMyOrder('${o._id}')">
+                            ✕ Sifarişi Ləğv Et
+                        </button>
+                    ` : '<span></span>'}
+                    <div style="font-weight:800; font-size:1.05rem; color:var(--primary);">
+                        Yekun: ${formatPrice(o.umumiQiymet)}
+                    </div>
                 </div>
             </div>
         `).join('');
     } catch (err) {
         list.innerHTML = `<p class="alert alert-danger">${escapeHtml(err.message)}</p>`;
+    }
+}
+
+async function cancelMyOrder(orderId) {
+    if (!confirm("Sifarişi ləğv etmək istədiyinizdən əminsiniz? Məhsullar anbara geri qaytarılacaq.")) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/orders/${orderId}/cancel`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Ləğv etmək mümkün olmadı');
+
+        showToast(data.message || 'Sifariş ləğv edildi!');
+        fetchMyOrders();
+        fetchProducts();
+    } catch (err) {
+        showToast(`Xəta: ${err.message}`);
     }
 }
 
@@ -1111,6 +1142,7 @@ async function fetchAdminOrders() {
                         <option value="Gözləyir" ${o.status === 'Gözləyir' ? 'selected' : ''}>⏳ Gözləyir</option>
                         <option value="Çatdırılır" ${o.status === 'Çatdırılır' ? 'selected' : ''}>🚚 Çatdırılır</option>
                         <option value="Tamamlandı" ${o.status === 'Tamamlandı' ? 'selected' : ''}>✅ Tamamlandı</option>
+                        <option value="Ləğv edildi" ${o.status === 'Ləğv edildi' ? 'selected' : ''}>❌ Ləğv edildi</option>
                     </select>
                 </div>
                 <div style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--text-muted);">

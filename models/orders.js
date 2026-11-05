@@ -34,8 +34,8 @@ const orderSchema = new mongoose.Schema({
     // 4. Sifarişin vəziyyəti (status) :  
     status: {
         type: String,
-        default: 'Gözləyir', // 'Gözləyir', 'Çatdırılır', 'Tamamlandı'
-        enum: ['Gözləyir', 'Çatdırılır', 'Tamamlandı']
+        default: 'Gözləyir', // 'Gözləyir', 'Çatdırılır', 'Tamamlandı', 'Ləğv edildi'
+        enum: ['Gözləyir', 'Çatdırılır', 'Tamamlandı', 'Ləğv edildi']
     },
     // 5. Biznes Məntiqi: Çatdırılma ünvanı və əlaqə məlumatları
     unvan: {
